@@ -17,7 +17,6 @@ import org.springframework.security.web.SecurityFilterChain;
 public class DefaultSecurityConfig {
 
     @Bean
-    @Order(2)
     public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request -> request.anyRequest().authenticated());
         http.formLogin(Customizer.withDefaults());
