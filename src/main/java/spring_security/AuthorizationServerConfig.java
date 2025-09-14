@@ -7,12 +7,17 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
@@ -25,8 +30,12 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
+import java.io.IOException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -43,85 +52,36 @@ public class AuthorizationServerConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        //d
-        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
+        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
+                new OAuth2AuthorizationServerConfigurer();
+        RequestMatcher endpointsMatcher = authorizationServerConfigurer
+                .getEndpointsMatcher();
+
+        authorizationServerConfigurer.authorizationEndpoint(authorizationEndpoint ->
+            authorizationEndpoint.authorizationResponseHandler((request, response, authentication) -> {
+
+                })
+                .errorResponseHandler((request, response, exception) -> {
+
+                })
+//                .authenticationProvider(null)
+        );
+
+        http
+            .securityMatcher(endpointsMatcher)
+            .authorizeHttpRequests(authorize ->
+                    authorize.anyRequest().authenticated()
+            )
+            .csrf(csrf -> csrf.ignoringRequestMatchers(endpointsMatcher))
+            .with(authorizationServerConfigurer, (configurer) -> {}); // apply 대신 with 사용
+
         http.exceptionHandling(exception -> exception.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")));
         http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
                 .oidc(Customizer.withDefaults());
 
         return http.build();
-    }
-
-    @Bean
-    public AuthorizationServerSettings authorizationServerSettings() {
-        return AuthorizationServerSettings.builder().issuer("http://localhost:9000").build();
-    }
-
-    @Bean
-    public RegisteredClientRepository registeredClientRepository() {
-
-        RegisteredClient registeredClient1 = getRegisteredClient("oauth2-client-app1", "{noop}secret1", "read", "write");
-        RegisteredClient registeredClient2 = getRegisteredClient("oauth2-client-app2", "{noop}secret2", "read", "delete");
-        RegisteredClient registeredClient3 = getRegisteredClient("oauth2-client-app3", "{noop}secret3", "read", "update");
-
-        return new InMemoryRegisteredClientRepository(Arrays.asList(registeredClient1, registeredClient2, registeredClient3));
-    }
-
-    private RegisteredClient getRegisteredClient(String clientId, String clientSecret, String scope1, String scope2) {
-        return RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .clientName(clientId)
-                .clientIdIssuedAt(Instant.now())
-                .clientSecretExpiresAt(Instant.MAX)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri("http://127.0.0.1:8081")
-                .scope(OidcScopes.OPENID)
-                .scope(OidcScopes.PROFILE)
-                .scope(OidcScopes.EMAIL)
-                .scope(scope1)
-                .scope(scope2)
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
-                .build();
-    }
-
-    @Bean
-    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
-        return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
-    }
-
-    @Bean
-    public JWKSource<SecurityContext> jwkSource() throws NoSuchAlgorithmException {
-
-        RSAKey rsaKey = generateRsa();
-        JWKSet jwkSet = new JWKSet(rsaKey);
-
-        return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
-    }
-
-    private RSAKey generateRsa() throws NoSuchAlgorithmException {
-
-        KeyPair keyPair = generateRsaKey();
-        RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) keyPair.getPrivate();
-        RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
-
-        return new RSAKey.Builder(rsaPublicKey)
-                .privateKey(rsaPrivateKey)
-                .keyID(UUID.randomUUID().toString())
-                .build();
-    }
-
-    private KeyPair generateRsaKey() throws NoSuchAlgorithmException {
-
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
-
-        return keyPairGenerator.generateKeyPair();
     }
 
 
