@@ -10,8 +10,10 @@ import com.nimbusds.jose.proc.SecurityContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +24,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -34,6 +37,7 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.security.KeyPair;
@@ -49,7 +53,11 @@ import java.util.UUID;
 @Configuration
 public class AuthorizationServerConfig {
 
+    @Autowired
+    private CustomAuthenticationProvider customAuthenticationProvider;
+
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
@@ -58,13 +66,23 @@ public class AuthorizationServerConfig {
                 .getEndpointsMatcher();
 
         authorizationServerConfigurer.authorizationEndpoint(authorizationEndpoint ->
-            authorizationEndpoint.authorizationResponseHandler((request, response, authentication) -> {
-
+            authorizationEndpoint
+                .authenticationProvider(customAuthenticationProvider)
+                .authorizationResponseHandler((request, response, authentication) -> {
+                    OAuth2AuthorizationCodeRequestAuthenticationToken authentication1 = (OAuth2AuthorizationCodeRequestAuthenticationToken) authentication;
+                    System.out.println(authentication);
+                    String redirectUri = authentication1.getRedirectUri();
+                    String authorizationCode = authentication1.getAuthorizationCode().getTokenValue();
+                    String state = null;
+                    if (StringUtils.hasText(authentication1.getState())) {
+                       state = authentication1.getState();
+                    }
+                    response.sendRedirect(redirectUri+"?code="+authorizationCode+"&state="+state);
                 })
                 .errorResponseHandler((request, response, exception) -> {
-
+                    System.out.println(exception.toString());
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 })
-//                .authenticationProvider(null)
         );
 
         http

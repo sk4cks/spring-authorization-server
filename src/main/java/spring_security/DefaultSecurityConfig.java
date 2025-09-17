@@ -3,6 +3,7 @@ package spring_security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -21,6 +22,9 @@ public class DefaultSecurityConfig {
     @Bean
     public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request -> request.anyRequest().authenticated());
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setUserDetailsService(userDetailsService());
+        http.authenticationProvider(daoAuthenticationProvider);
         http.formLogin(Customizer.withDefaults());
 
         return http.build();
@@ -32,6 +36,4 @@ public class DefaultSecurityConfig {
         return new InMemoryUserDetailsManager(user);
     }
 
-    @Bean
-    public OAuth2AuthorizationService oAuth2AuthorizationService() { return new InMemoryOAuth2AuthorizationService(); }
 }
