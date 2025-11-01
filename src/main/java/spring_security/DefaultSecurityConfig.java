@@ -22,10 +22,10 @@ public class DefaultSecurityConfig {
     @Bean
     public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request -> request.anyRequest().authenticated());
+        http.formLogin(Customizer.withDefaults());
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
         daoAuthenticationProvider.setUserDetailsService(userDetailsService());
         http.authenticationProvider(daoAuthenticationProvider);
-        http.formLogin(Customizer.withDefaults());
 
         return http.build();
     }

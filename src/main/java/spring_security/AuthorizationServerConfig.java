@@ -32,6 +32,8 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -65,25 +67,7 @@ public class AuthorizationServerConfig {
         RequestMatcher endpointsMatcher = authorizationServerConfigurer
                 .getEndpointsMatcher();
 
-        authorizationServerConfigurer.authorizationEndpoint(authorizationEndpoint ->
-            authorizationEndpoint
-                .authenticationProvider(customAuthenticationProvider)
-                .authorizationResponseHandler((request, response, authentication) -> {
-                    OAuth2AuthorizationCodeRequestAuthenticationToken authentication1 = (OAuth2AuthorizationCodeRequestAuthenticationToken) authentication;
-                    System.out.println(authentication);
-                    String redirectUri = authentication1.getRedirectUri();
-                    String authorizationCode = authentication1.getAuthorizationCode().getTokenValue();
-                    String state = null;
-                    if (StringUtils.hasText(authentication1.getState())) {
-                       state = authentication1.getState();
-                    }
-                    response.sendRedirect(redirectUri+"?code="+authorizationCode+"&state="+state);
-                })
-                .errorResponseHandler((request, response, exception) -> {
-                    System.out.println(exception.toString());
-                    response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-                })
-        );
+
 
         http
             .securityMatcher(endpointsMatcher)
@@ -94,7 +78,6 @@ public class AuthorizationServerConfig {
             .with(authorizationServerConfigurer, (configurer) -> {}); // apply 대신 with 사용
 
         http.exceptionHandling(exception -> exception.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")));
-        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
                 .oidc(Customizer.withDefaults());
@@ -102,5 +85,15 @@ public class AuthorizationServerConfig {
         return http.build();
     }
 
+    @Bean
+    public OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer() {
+        return context -> {
+            Authentication principal = context.getPrincipal();
+            String username = principal.getName(); // 일반적으로 username
+
+            // preferred_username 클레임 추가
+            context.getClaims().claim("preferred_username", username);
+        };
+    }
 
 }
