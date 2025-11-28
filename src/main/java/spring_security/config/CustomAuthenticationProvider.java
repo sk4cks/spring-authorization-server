@@ -1,4 +1,4 @@
-package spring_security;
+package spring_security.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -8,7 +8,6 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.stereotype.Component;
 
@@ -31,7 +30,6 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
         Authentication authenticate = authenticationProvider.authenticate(authorizationCodeRequestAuthentication);
 
         Authentication principal = (Authentication) authorizationCodeRequestAuthentication.getPrincipal();
-        System.out.println("principal = " + principal);
 
         return authenticate;
     }
