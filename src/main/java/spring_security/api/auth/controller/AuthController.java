@@ -1,5 +1,6 @@
 package spring_security.api.auth.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +21,8 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody SignInDTO param) {
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody SignInDTO param, HttpServletResponse response) {
 
-        return ResponseEntity.ok(this.authService.login(param));
+        return ResponseEntity.ok(this.authService.login(param, response));
     }
 }
