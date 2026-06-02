@@ -1,28 +1,27 @@
 package spring_security.api.auth.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import spring_security.api.auth.model.SignInDTO;
+import spring_security.api.auth.model.LoginRequest;
 import spring_security.api.auth.service.AuthService;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
 
+    /** BFF 전용 — 프론트는 API만 호출하고 이 endpoint는 API가 server-to-server로 사용 */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody SignInDTO param, HttpServletResponse response) {
-
-        return ResponseEntity.ok(this.authService.login(param, response));
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest param) {
+        return ResponseEntity.ok(authService.login(param));
     }
 }

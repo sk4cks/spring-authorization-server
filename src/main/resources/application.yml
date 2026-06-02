@@ -1,2 +1,11 @@
 server:
   port: 9000
+  servlet:
+    context-path: "/authorization-api"
+
+spring:
+  security:
+    oauth2:
+      authorizationserver:
+        # SAS 1.2: issuer에 path 불가 → context-path와 분리. API issuer-uri와 동일해야 함.
+        issuer: http://localhost:9000
