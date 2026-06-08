@@ -14,7 +14,13 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import spring_security.api.auth.service.CustomUserDetailsService;
+import spring_security.api.auth.social.SocialLoginSuccessHandler;
 
 @EnableWebSecurity
 @Configuration
@@ -22,6 +28,9 @@ import spring_security.api.auth.service.CustomUserDetailsService;
 public class DefaultSecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
+    private final SocialLoginSuccessHandler socialLoginSuccessHandler;
+    private final OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService;
+    private final OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService;
 
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider() {
@@ -39,9 +48,14 @@ public class DefaultSecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/login", "/auth/**", "/error").permitAll()
+                        .requestMatchers("/login", "/auth/**", "/oauth2/**", "/error").permitAll()
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/**"))
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(oauth2UserService)
+                                .oidcUserService(oidcUserService))
+                        .successHandler(socialLoginSuccessHandler))
                 .formLogin(Customizer.withDefaults());
 
         return http.build();

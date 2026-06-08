@@ -9,3 +9,12 @@ spring:
       authorizationserver:
         # SAS 1.2: issuer에 path 불가 → context-path와 분리. API issuer-uri와 동일해야 함.
         issuer: http://localhost:9000
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope: openid, profile, email
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com

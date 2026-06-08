@@ -50,6 +50,7 @@ public class AppConfig {
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .redirectUri("http://localhost:8080/oauth/callback")
                 .redirectUri("http://127.0.0.1:8080/oauth/callback")
+                .redirectUri("https://app.13.239.220.205.nip.io/oauth/callback")
                 .scope(OidcScopes.OPENID)
                 .scope(OidcScopes.PROFILE)
                 .scope("read")
