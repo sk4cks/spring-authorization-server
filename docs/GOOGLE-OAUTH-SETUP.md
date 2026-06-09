@@ -47,6 +47,8 @@ IDE 실행 시 Run Configuration env에 동일하게 설정.
 `.env` (react-note):
 
 ```
-VITE_AUTH_SERVER_URL=http://localhost:9000/authorization-api
+VITE_BASE_API_URL=http://localhost:8082
 VITE_OAUTH_REDIRECT_URI=http://localhost:8080/oauth/callback
 ```
+
+SNS 시작은 프론트 → `GET /api/auth/social/prepare/google` (BFF) → Auth Server.

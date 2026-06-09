@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.server.authorization.token.JwtEncodin
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.util.StringUtils;
 
 @Configuration
 public class AuthorizationServerConfig {
@@ -35,8 +36,14 @@ public class AuthorizationServerConfig {
     @Bean
     public OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer() {
         return context -> {
-            Authentication principal = context.getPrincipal();
-            context.getClaims().claim("preferred_username", principal.getName());
+            // SNS: SocialLoginSuccessHandler가 저장한 principalName (nickname/email)
+            // principal.getName()은 OAuth2User의 id라 카카오 숫자 id가 들어감
+            String name = context.getAuthorization().getPrincipalName();
+            if (!StringUtils.hasText(name)) {
+                name = context.getPrincipal().getName();
+            }
+            context.getClaims().subject(name);
+            context.getClaims().claim("preferred_username", name);
         };
     }
 }

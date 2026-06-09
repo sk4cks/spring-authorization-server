@@ -114,11 +114,37 @@ public class SocialLoginSuccessHandler implements AuthenticationSuccessHandler {
             return oidcUser.getEmail();
         }
         if (principal instanceof OAuth2User oauth2User) {
-            Object email = oauth2User.getAttribute("email");
-            if (email instanceof String s && StringUtils.hasText(s)) {
-                return s;
+            String provider = oauth2User.getAttribute("provider") instanceof String p ? p : "";
+
+            if ("naver".equals(provider)) {
+                String email = asNonBlankString(oauth2User.getAttribute("email"));
+                if (email != null) {
+                    return email;
+                }
+            }
+            if ("kakao".equals(provider)) {
+                String nickname = asNonBlankString(oauth2User.getAttribute("nickname"));
+                if (nickname != null) {
+                    return nickname;
+                }
+            }
+
+            String email = asNonBlankString(oauth2User.getAttribute("email"));
+            if (email != null) {
+                return email;
+            }
+            Object id = oauth2User.getAttribute("id");
+            if (id != null && StringUtils.hasText(provider)) {
+                return provider + ":" + id;
             }
         }
         return authentication.getName();
+    }
+
+    private static String asNonBlankString(Object value) {
+        if (value instanceof String s && StringUtils.hasText(s)) {
+            return s;
+        }
+        return null;
     }
 }
