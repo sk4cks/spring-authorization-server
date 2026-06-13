@@ -60,7 +60,10 @@ public class AppConfig {
                         .requireAuthorizationConsent(false)
                         .requireProofKey(true)
                         .build())
-                .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofHours(1)).build())
+                .tokenSettings(TokenSettings.builder()
+                        .accessTokenTimeToLive(Duration.ofHours(1))
+                        .refreshTokenTimeToLive(Duration.ofDays(30))
+                        .build())
                 .build();
     }
 
