@@ -3,8 +3,10 @@
 ## 1. Google Cloud Console
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → 프로젝트 선택
-2. **APIs & Services → OAuth consent screen** — External, 테스트 사용자에 본인 Gmail 추가
-3. **Credentials → Create OAuth client ID** — Web application
+2. **APIs & Services → Library** — **Gmail API** 활성화
+3. **OAuth consent screen** — External, 테스트 사용자에 본인 Gmail 추가  
+   - Scopes 추가: `gmail.readonly`, `gmail.send`
+4. **Credentials → Create OAuth client ID** — Web application
 
 | 항목 | 로컬 값 |
 |------|---------|

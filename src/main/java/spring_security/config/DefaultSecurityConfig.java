@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import spring_security.api.auth.service.CustomUserDetailsService;
 import spring_security.api.auth.social.SocialLoginSuccessHandler;
 
@@ -31,6 +32,7 @@ public class DefaultSecurityConfig {
     private final SocialLoginSuccessHandler socialLoginSuccessHandler;
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService;
     private final OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService;
+    private final OAuth2AuthorizationRequestResolver authorizationRequestResolver;
 
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider() {
@@ -52,6 +54,8 @@ public class DefaultSecurityConfig {
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/**"))
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .authorizationRequestResolver(authorizationRequestResolver))
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(oauth2UserService)
                                 .oidcUserService(oidcUserService))
