@@ -24,9 +24,7 @@ public class GoogleGmailTokenController {
     private String internalApiKey;
 
     @GetMapping("/access-token")
-    public ResponseEntity<?> accessToken(
-            @RequestParam String principal,
-            @RequestHeader(value = "X-Internal-Api-Key", required = false) String apiKey) {
+    public ResponseEntity<?> accessToken(@RequestParam String principal, @RequestHeader(value = "X-Internal-Api-Key", required = false) String apiKey) {
         if (!StringUtils.hasText(apiKey) || !apiKey.equals(internalApiKey)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

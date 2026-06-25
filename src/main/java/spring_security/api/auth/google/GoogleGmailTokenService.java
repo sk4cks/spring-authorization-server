@@ -32,6 +32,7 @@ public class GoogleGmailTokenService {
                     .withClientRegistrationId(GOOGLE_REGISTRATION_ID)
                     .principal(authentication(principalName))
                     .build();
+
             client = authorizedClientManager.authorize(authorizeRequest);
             if (client == null || client.getAccessToken() == null) {
                 throw new GoogleGmailTokenNotFoundException(principalName);
