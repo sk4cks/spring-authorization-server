@@ -20,6 +20,7 @@ spring:
               - email
               - https://www.googleapis.com/auth/gmail.readonly
               - https://www.googleapis.com/auth/gmail.send
+              - https://www.googleapis.com/auth/gmail.modify
           kakao:
             client-id: ${KAKAO_CLIENT_ID:}
             client-secret: ${KAKAO_CLIENT_SECRET:}
