@@ -1,0 +1,14 @@
+# k8s (note namespace) — Auth Server Pod
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/notedb
+    username: note
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  security:
+    oauth2:
+      authorizationserver:
+        issuer: https://auth.13.239.220.205.nip.io
+
+app:
+  mail:
+    domain: 13.239.220.205.nip.io

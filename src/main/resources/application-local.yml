@@ -1,0 +1,7 @@
+# 맥 로컬 개발 — EC2 NodePort (보안그룹에 내 IP 허용 필요)
+# 비밀번호: .vscode/launch.json 의 SPRING_DATASOURCE_PASSWORD
+spring:
+  datasource:
+    url: jdbc:postgresql://13.239.220.205:30432/notedb
+    username: note
+    password: ${SPRING_DATASOURCE_PASSWORD:}

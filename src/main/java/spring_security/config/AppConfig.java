@@ -55,7 +55,6 @@ public class AppConfig {
                 .scope(OidcScopes.PROFILE)
                 .scope("read")
                 .scope("write")
-                .scope("photo")
                 .clientSettings(ClientSettings.builder()
                         .requireAuthorizationConsent(false)
                         .requireProofKey(true)

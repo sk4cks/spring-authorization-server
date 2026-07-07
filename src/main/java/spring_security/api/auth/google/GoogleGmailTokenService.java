@@ -8,6 +8,10 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import spring_security.api.auth.security.InternalApiKeyVerifier;
+import spring_security.api.common.exception.AppException;
+import spring_security.api.common.exception.ErrorCode;
 
 import java.time.Instant;
 
@@ -19,12 +23,21 @@ public class GoogleGmailTokenService {
 
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final OAuth2AuthorizedClientManager authorizedClientManager;
+    private final InternalApiKeyVerifier internalApiKeyVerifier;
+
+    public String getAccessTokenForInternal(String apiKey, String principal) {
+        internalApiKeyVerifier.requireValid(apiKey);
+        if (!StringUtils.hasText(principal)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "principal required");
+        }
+        return getValidAccessToken(principal);
+    }
 
     public String getValidAccessToken(String principalName) {
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
                 GOOGLE_REGISTRATION_ID, principalName);
         if (client == null) {
-            throw new GoogleGmailTokenNotFoundException(principalName);
+            throw new AppException(ErrorCode.GOOGLE_GMAIL_NOT_LINKED);
         }
 
         if (isExpiredSoon(client)) {
@@ -35,7 +48,7 @@ public class GoogleGmailTokenService {
 
             client = authorizedClientManager.authorize(authorizeRequest);
             if (client == null || client.getAccessToken() == null) {
-                throw new GoogleGmailTokenNotFoundException(principalName);
+                throw new AppException(ErrorCode.GOOGLE_GMAIL_NOT_LINKED);
             }
         }
 

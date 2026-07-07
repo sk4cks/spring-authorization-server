@@ -16,6 +16,10 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import spring_security.api.user.domain.SysUser;
+import spring_security.api.common.exception.AppException;
+import spring_security.api.common.exception.ErrorCode;
+import spring_security.api.user.repository.SysUserQueryRepository;
 
 import java.security.Principal;
 import java.time.Instant;
@@ -33,7 +37,7 @@ public class AccessTokenService {
 
     private static final String SPA_CLIENT_ID = "react-note";
     private static final Set<String> DEFAULT_SCOPES =
-            Set.of("read", "write", "photo", "openid", "profile");
+            Set.of("read", "write", "openid", "profile");
     private static final long ACCESS_TOKEN_TTL_SECONDS = 3600L;
     private static final long REFRESH_TOKEN_TTL_DAYS = 30L;
 
@@ -41,6 +45,7 @@ public class AccessTokenService {
     private final AuthorizationServerSettings authorizationServerSettings;
     private final OAuth2AuthorizationService authorizationService;
     private final RegisteredClientRepository clientRepository;
+    private final SysUserQueryRepository sysUserQueryRepository;
 
     public Map<String, Object> issueAccessToken(Authentication authentication, String userId) {
         RegisteredClient client = clientRepository.findByClientId(SPA_CLIENT_ID);
@@ -49,6 +54,9 @@ public class AccessTokenService {
         }
 
         String username = resolveUsername(authentication, userId);
+        SysUser user = sysUserQueryRepository.findByUserId(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found: " + username));
+
         Instant issuedAt = Instant.now();
         Instant accessExpiresAt = issuedAt.plus(ACCESS_TOKEN_TTL_SECONDS, ChronoUnit.SECONDS);
         Instant refreshExpiresAt = issuedAt.plus(REFRESH_TOKEN_TTL_DAYS, ChronoUnit.DAYS);
@@ -62,6 +70,7 @@ public class AccessTokenService {
                 .expiresAt(accessExpiresAt)
                 .claim("scope", scope)
                 .claim("preferred_username", username)
+                .claim("email", user.getMailAddress())
                 .build();
 
         Jwt jwt = jwtEncoder.encode(JwtEncoderParameters.from(claims));
@@ -95,6 +104,7 @@ public class AccessTokenService {
         result.put("expires_in", ACCESS_TOKEN_TTL_SECONDS);
         result.put("refresh_token", refreshToken.getTokenValue());
         result.put("scope", scope);
+        result.put("mailAddress", user.getMailAddress());
         return result;
     }
 

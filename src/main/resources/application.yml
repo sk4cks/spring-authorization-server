@@ -4,6 +4,32 @@ server:
     context-path: "/authorization-api"
 
 spring:
+  profiles:
+    default: local
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/notedb}
+    username: ${SPRING_DATASOURCE_USERNAME:note}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  flyway:
+    enabled: true
+    schemas: note
+    default-schema: note
+    create-schemas: true
+    # DBeaver 등으로 스키마를 먼저 만든 DB: V1 실행 없이 "이미 1까지 적용됨" 표시
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: "SYS_USER created manually before Flyway"
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        # PostgreSQL 기본 전략이 SYS_USER → sys_user 로 바꿔 Flyway DDL("SYS_USER")과 어긋남
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: note
+        globally_quoted_identifiers: true
   security:
     oauth2:
       authorizationserver:
@@ -56,3 +82,5 @@ spring:
 
 app:
   internal-api-key: ${AUTH_INTERNAL_API_KEY:dev-internal-key}
+  mail:
+    domain: ${MAIL_DOMAIN:note.local}
