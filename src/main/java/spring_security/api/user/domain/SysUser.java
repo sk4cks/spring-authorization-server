@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.SequenceGenerator;
@@ -14,6 +15,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import spring_security.api.common.constants.DelYn;
 
 import java.time.LocalDateTime;
 
@@ -62,6 +64,18 @@ public class SysUser {
     @Column(name = "UPDATED_AT", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "CREATED_BY")
+    private Long createdBy;
+
+    @Column(name = "UPDATED_BY")
+    private Long updatedBy;
+
+    @Column(name = "DEL_YN", nullable = false, length = 1)
+    private String delYn;
+
+    @Column(name = "DELETED_AT")
+    private LocalDateTime deletedAt;
+
     private SysUser(
             String userId,
             String mailAddress,
@@ -76,14 +90,35 @@ public class SysUser {
         this.externalId = externalId;
         this.externalEmail = externalEmail;
         this.status = UserStatus.ACTIVE;
+        this.delYn = DelYn.N;
     }
 
     public static SysUser createLocal(String userId, String mailAddress, String passwordHash) {
         return new SysUser(userId, mailAddress, passwordHash, AuthProvider.LOCAL, null, null);
     }
 
+    public static SysUser createSocial(
+            String userId,
+            String mailAddress,
+            AuthProvider authProvider,
+            String externalId,
+            String externalEmail) {
+        return new SysUser(userId, mailAddress, null, authProvider, externalId, externalEmail);
+    }
+
     public boolean isActive() {
-        return status == UserStatus.ACTIVE;
+        return status == UserStatus.ACTIVE && DelYn.N.equals(delYn);
+    }
+
+    /** 탈퇴(soft delete) — DEL_YN=Y, STATUS=INACTIVE */
+    public void softDelete(Long actorUserSeq) {
+        if (DelYn.isDeleted(delYn)) {
+            return;
+        }
+        this.delYn = DelYn.Y;
+        this.deletedAt = LocalDateTime.now();
+        this.status = UserStatus.INACTIVE;
+        this.updatedBy = actorUserSeq;
     }
 
     @PrePersist
@@ -91,6 +126,20 @@ public class SysUser {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
+        if (delYn == null) {
+            delYn = DelYn.N;
+        }
+    }
+
+    /** 본인 가입 등 — INSERT 후 USER_SEQ 로 등록/수정자 기록 */
+    @PostPersist
+    void assignAuditOnCreate() {
+        if (createdBy == null) {
+            createdBy = userSeq;
+        }
+        if (updatedBy == null) {
+            updatedBy = userSeq;
+        }
     }
 
     @PreUpdate

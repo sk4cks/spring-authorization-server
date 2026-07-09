@@ -1,0 +1,3 @@
+-- DEL_YN: CHAR(1) → VARCHAR(1) (JPA String 기본 매핑과 일치)
+ALTER TABLE note."SYS_USER"
+    ALTER COLUMN "DEL_YN" TYPE VARCHAR(1);

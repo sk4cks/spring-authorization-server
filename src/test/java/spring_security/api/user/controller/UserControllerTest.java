@@ -17,8 +17,10 @@ import spring_security.api.user.domain.UserStatus;
 import spring_security.api.user.dto.UserResponse;
 import spring_security.api.user.service.RegisterService;
 import spring_security.api.user.service.UserQueryService;
+import spring_security.api.user.service.UserWithdrawService;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -39,6 +41,9 @@ class UserControllerTest {
 
     @MockBean
     private UserQueryService userQueryService;
+
+    @MockBean
+    private UserWithdrawService userWithdrawService;
 
     @Test
     void register_returnsCreated() throws Exception {
@@ -83,5 +88,14 @@ class UserControllerTest {
         mockMvc.perform(get("/auth/users/sk4cks"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void withdraw_returnsNoContent() throws Exception {
+        mockMvc.perform(
+                        post("/auth/users/sk4cks/withdraw").header("X-Internal-Api-Key", "dev-internal-key"))
+                .andExpect(status().isNoContent());
+
+        verify(userWithdrawService).withdrawForInternal("dev-internal-key", "sk4cks");
     }
 }

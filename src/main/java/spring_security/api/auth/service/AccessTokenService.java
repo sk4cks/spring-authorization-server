@@ -31,6 +31,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * SPA(react-note)용 access/refresh 토큰 발급.
+ * <p>
+ * 로컬 로그인({@code POST /auth/login})과 SNS 온보딩 완료({@code POST /auth/social/register})에서 사용한다.
+ * SNS authorization_code 교환({@code POST /oauth2/token})은 Spring Authorization Server 기본 플로우이며,
+ * JWT 클레임 보강은 {@link spring_security.config.AuthorizationServerConfig#jwtCustomizer()} 가 담당한다.
+ * <p>
+ * JWT {@code sub} = 내부 {@code userId}, {@code email} = {@code SYS_USER.MAIL_ADDRESS}.
+ * refresh_token 은 {@link OAuth2AuthorizationService}에 저장되어 이후 갱신에 쓰인다.
+ */
 @Service
 @RequiredArgsConstructor
 public class AccessTokenService {
@@ -47,6 +57,10 @@ public class AccessTokenService {
     private final RegisteredClientRepository clientRepository;
     private final SysUserQueryRepository sysUserQueryRepository;
 
+    /**
+     * 로컬 계정 로그인 성공 후 토큰 발급.
+     * 인증된 userId로 SYS_USER 를 조회한 뒤 {@link #issueAccessTokenForUser(SysUser)} 로 위임한다.
+     */
     public Map<String, Object> issueAccessToken(Authentication authentication, String userId) {
         RegisteredClient client = clientRepository.findByClientId(SPA_CLIENT_ID);
         if (client == null) {
@@ -57,6 +71,25 @@ public class AccessTokenService {
         SysUser user = sysUserQueryRepository.findByUserId(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found: " + username));
 
+        return issueAccessTokenForUser(user, authentication);
+    }
+
+    /** SYS_USER 가 이미 존재할 때 토큰만 발급 (SNS 온보딩 완료 등). */
+    public Map<String, Object> issueAccessTokenForUser(SysUser user) {
+        return issueAccessTokenForUser(user, null);
+    }
+
+    /**
+     * JWT + refresh_token 생성 및 OAuth2Authorization 저장.
+     * BFF 응답 형식(OAuth2 token endpoint 호환)으로 반환한다.
+     */
+    private Map<String, Object> issueAccessTokenForUser(SysUser user, Authentication authentication) {
+        RegisteredClient client = clientRepository.findByClientId(SPA_CLIENT_ID);
+        if (client == null) {
+            throw new IllegalStateException("SPA client not configured: " + SPA_CLIENT_ID);
+        }
+
+        String username = user.getUserId();
         Instant issuedAt = Instant.now();
         Instant accessExpiresAt = issuedAt.plus(ACCESS_TOKEN_TTL_SECONDS, ChronoUnit.SECONDS);
         Instant refreshExpiresAt = issuedAt.plus(REFRESH_TOKEN_TTL_DAYS, ChronoUnit.DAYS);
@@ -96,6 +129,7 @@ public class AccessTokenService {
                 .refreshToken(refreshToken)
                 .build();
 
+        // SAS refresh grant 가 이 authorization 을 조회할 수 있도록 저장
         authorizationService.save(authorization);
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -108,6 +142,7 @@ public class AccessTokenService {
         return result;
     }
 
+    /** Authentication.name 우선, 없으면 요청의 userId (로컬 로그인 폼 기준). */
     private String resolveUsername(Authentication authentication, String userId) {
         if (authentication != null && StringUtils.hasText(authentication.getName())) {
             return authentication.getName();
