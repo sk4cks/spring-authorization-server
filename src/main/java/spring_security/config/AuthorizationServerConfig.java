@@ -15,7 +15,7 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.util.StringUtils;
-import spring_security.api.auth.social.SocialLoginAttributes;
+import spring_security.auth.oauth.OAuthLoginAttributes;
 
 @Configuration
 public class AuthorizationServerConfig {
@@ -38,7 +38,7 @@ public class AuthorizationServerConfig {
     @Bean
     public OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer() {
         return context -> {
-            // SNS: SocialLoginSuccessHandler가 저장한 principalName (nickname/email)
+            // SNS: OAuthLoginSuccessHandler가 저장한 principalName (nickname/email)
             // principal.getName()은 OAuth2User의 id라 카카오 숫자 id가 들어감
             String name = context.getAuthorization().getPrincipalName();
             if (!StringUtils.hasText(name)) {
@@ -49,12 +49,12 @@ public class AuthorizationServerConfig {
 
             OAuth2Authorization authorization = context.getAuthorization();
             if (authorization != null) {
-                String snsProvider = authorization.getAttribute(SocialLoginAttributes.SNS_PROVIDER);
-                String snsExternalId = authorization.getAttribute(SocialLoginAttributes.SNS_EXTERNAL_ID);
+                String snsProvider = authorization.getAttribute(OAuthLoginAttributes.SNS_PROVIDER);
+                String snsExternalId = authorization.getAttribute(OAuthLoginAttributes.SNS_EXTERNAL_ID);
                 if (StringUtils.hasText(snsProvider) && StringUtils.hasText(snsExternalId)) {
                     context.getClaims().claim("sns_provider", snsProvider);
                     context.getClaims().claim("sns_external_id", snsExternalId);
-                    String snsEmail = authorization.getAttribute(SocialLoginAttributes.SNS_EXTERNAL_EMAIL);
+                    String snsEmail = authorization.getAttribute(OAuthLoginAttributes.SNS_EXTERNAL_EMAIL);
                     if (StringUtils.hasText(snsEmail)) {
                         context.getClaims().claim("sns_external_email", snsEmail);
                     }
