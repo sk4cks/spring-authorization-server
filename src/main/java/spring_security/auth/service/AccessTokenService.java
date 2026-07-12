@@ -1,6 +1,7 @@
 package spring_security.auth.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
@@ -123,7 +124,8 @@ public class AccessTokenService {
                 .principalName(username)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizedScopes(scopes)
-                .attribute(Principal.class.getName(), authentication)
+                // refresh grant 가 tokenContext.principal 로 이 attribute 를 씀 — null 불가
+                .attribute(Principal.class.getName(), principalFor(authentication, username))
                 .token(accessToken, metadata -> metadata.put(
                         OAuth2Authorization.Token.CLAIMS_METADATA_NAME, jwt.getClaims()))
                 .refreshToken(refreshToken)
@@ -151,5 +153,17 @@ public class AccessTokenService {
             return userId;
         }
         throw new IllegalArgumentException("Cannot determine username for access token");
+    }
+
+    /**
+     * OAuth2Authorization Principal attribute.
+     * SNS 온보딩처럼 SecurityContext Authentication 이 없으면 userId 로 placeholder 를 만든다.
+     * (refresh_token grant 가 {@code authorization.getAttribute(Principal)} 을 사용)
+     */
+    private static Authentication principalFor(Authentication authentication, String username) {
+        if (authentication != null) {
+            return authentication;
+        }
+        return new UsernamePasswordAuthenticationToken(username, "N/A");
     }
 }

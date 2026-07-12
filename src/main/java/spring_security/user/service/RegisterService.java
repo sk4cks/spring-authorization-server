@@ -37,7 +37,6 @@ public class RegisterService {
 
         String passwordHash = passwordEncoder.encode(request.password());
         SysUser user = SysUser.createLocal(request.userId(), mailAddress, passwordHash);
-        SysUser saved = sysUserRepository.save(user);
-        return UserResponse.from(saved);
+        return UserResponse.from(sysUserRepository.save(user));
     }
 }

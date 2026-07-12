@@ -7,7 +7,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PostPersist;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.SequenceGenerator;
@@ -129,11 +128,10 @@ public class SysUser {
         if (delYn == null) {
             delYn = DelYn.N;
         }
-    }
-
-    /** 본인 가입 등 — INSERT 후 USER_SEQ 로 등록/수정자 기록 */
-    @PostPersist
-    void assignAuditOnCreate() {
+        // SEQUENCE 전략: persist 시 INSERT 전에 USER_SEQ 가 할당됨 → 한 번 INSERT 로 감사 컬럼까지 기록
+        if (userSeq == null) {
+            throw new IllegalStateException("USER_SEQ must be assigned before insert");
+        }
         if (createdBy == null) {
             createdBy = userSeq;
         }
