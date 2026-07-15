@@ -75,6 +75,10 @@ public class SysUser {
     @Column(name = "DELETED_AT")
     private LocalDateTime deletedAt;
 
+    /** Mailcow 메일함 비밀번호 (AES 암호문). IMAP/SMTP용. */
+    @Column(name = "MAILBOX_PASSWORD_ENC", length = 512)
+    private String mailboxPasswordEnc;
+
     private SysUser(
             String userId,
             String mailAddress,
@@ -107,6 +111,11 @@ public class SysUser {
 
     public boolean isActive() {
         return status == UserStatus.ACTIVE && DelYn.N.equals(delYn);
+    }
+
+    /** Mailcow에 넣은 평문을 암호화한 값을 저장 (가입/온보딩). */
+    public void assignMailboxPasswordEnc(String mailboxPasswordEnc) {
+        this.mailboxPasswordEnc = mailboxPasswordEnc;
     }
 
     /** 탈퇴(soft delete) — DEL_YN=Y, STATUS=INACTIVE */

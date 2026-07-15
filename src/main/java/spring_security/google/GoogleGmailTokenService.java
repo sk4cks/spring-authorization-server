@@ -9,7 +9,6 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import spring_security.common.security.InternalApiKeyVerifier;
 import spring_security.common.exception.AppException;
 import spring_security.common.exception.ErrorCode;
 
@@ -23,10 +22,8 @@ public class GoogleGmailTokenService {
 
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final OAuth2AuthorizedClientManager authorizedClientManager;
-    private final InternalApiKeyVerifier internalApiKeyVerifier;
 
-    public String getAccessTokenForInternal(String apiKey, String principal) {
-        internalApiKeyVerifier.requireValid(apiKey);
+    public String getAccessToken(String principal) {
         if (!StringUtils.hasText(principal)) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "principal required");
         }

@@ -9,6 +9,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import spring_security.common.exception.AppException;
 import spring_security.common.exception.ErrorCode;
+import spring_security.mail.MailboxPasswordCipher;
+import spring_security.mailcow.MailcowClient;
 import spring_security.user.domain.AuthProvider;
 import spring_security.user.domain.SysUser;
 import spring_security.user.domain.UserStatus;
@@ -20,6 +22,7 @@ import spring_security.user.repository.SysUserRepository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,41 +30,52 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RegisterServiceTest {
 
-    @Mock
-    private SysUserRepository sysUserRepository;
+  @Mock
+  private SysUserRepository sysUserRepository;
 
-    @Mock
-    private SysUserQueryRepository sysUserQueryRepository;
+  @Mock
+  private SysUserQueryRepository sysUserQueryRepository;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
+  @Mock
+  private PasswordEncoder passwordEncoder;
 
-    private RegisterService registerService;
+  @Mock
+  private MailcowClient mailcowClient;
 
-    @BeforeEach
-    void setUp() {
-        registerService = new RegisterService(sysUserRepository, sysUserQueryRepository, passwordEncoder);
-        setMailDomain("note.local");
-    }
+  @Mock
+  private MailboxPasswordCipher mailboxPasswordCipher;
 
-    @Test
-    void register_createsLocalUser() {
-        when(sysUserQueryRepository.existsByUserId("sk4cks")).thenReturn(false);
-        when(sysUserQueryRepository.existsByMailAddress("sk4cks@note.local")).thenReturn(false);
-        when(passwordEncoder.encode("1234")).thenReturn("{bcrypt}hash");
-        when(sysUserRepository.save(any(SysUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
+  private RegisterService registerService;
 
-        UserResponse response = registerService.register(new RegisterRequest("sk4cks", "1234"));
+  @BeforeEach
+  void setUp() {
+    registerService = new RegisterService(
+            sysUserRepository, sysUserQueryRepository, passwordEncoder, mailcowClient, mailboxPasswordCipher);
+    setMailDomain("note.local");
+  }
 
-        assertThat(response.userId()).isEqualTo("sk4cks");
-        assertThat(response.mailAddress()).isEqualTo("sk4cks@note.local");
-        assertThat(response.authProvider()).isEqualTo(AuthProvider.LOCAL);
-        assertThat(response.status()).isEqualTo(UserStatus.ACTIVE);
+  @Test
+  void register_createsLocalUser() {
+    when(sysUserQueryRepository.existsByUserId("sk4cks")).thenReturn(false);
+    when(sysUserQueryRepository.existsByMailAddress("sk4cks@note.local")).thenReturn(false);
+    when(passwordEncoder.encode("1234")).thenReturn("{bcrypt}hash");
+    when(mailboxPasswordCipher.encrypt("1234")).thenReturn("enc-1234");
+    when(sysUserRepository.save(any(SysUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ArgumentCaptor<SysUser> captor = ArgumentCaptor.forClass(SysUser.class);
-        verify(sysUserRepository).save(captor.capture());
-        assertThat(captor.getValue().getPasswordHash()).isEqualTo("{bcrypt}hash");
-    }
+    UserResponse response = registerService.register(new RegisterRequest("sk4cks", "1234"));
+
+    assertThat(response.userId()).isEqualTo("sk4cks");
+    assertThat(response.mailAddress()).isEqualTo("sk4cks@note.local");
+    assertThat(response.authProvider()).isEqualTo(AuthProvider.LOCAL);
+    assertThat(response.status()).isEqualTo(UserStatus.ACTIVE);
+
+    ArgumentCaptor<SysUser> captor = ArgumentCaptor.forClass(SysUser.class);
+    verify(sysUserRepository).save(captor.capture());
+    assertThat(captor.getValue().getPasswordHash()).isEqualTo("{bcrypt}hash");
+    assertThat(captor.getValue().getMailboxPasswordEnc()).isEqualTo("enc-1234");
+    verify(mailcowClient).createMailbox(eq("sk4cks"), eq("note.local"), eq("sk4cks"), eq("1234"));
+    verify(mailboxPasswordCipher).encrypt("1234");
+  }
 
     @Test
     void register_throwsWhenUserIdExists() {

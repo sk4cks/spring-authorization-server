@@ -12,3 +12,9 @@ spring:
 app:
   mail:
     domain: 13.239.220.205.nip.io
+    # mailbox-secret / salt / mailcow api-key → k8s Secret env 만 (기본값 없음)
+    mailbox-secret: ${MAILBOX_PASSWORD_SECRET:}
+    mailbox-salt: ${MAILBOX_PASSWORD_SALT:}
+    mailcow:
+      enabled: false
+      api-key: ${MAILCOW_API_KEY:}

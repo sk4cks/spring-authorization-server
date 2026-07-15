@@ -1,3 +1,5 @@
+# Copy to application-test.yml (gitignored) before running tests:
+#   cp src/test/resources/application-test.yml.example src/test/resources/application-test.yml
 spring:
   flyway:
     enabled: false
@@ -36,3 +38,9 @@ spring:
 app:
   mail:
     domain: note.local
+    mailbox-secret: replace-me-mailbox-secret
+    mailbox-salt: 0123456789abcdef0123456789abcdef
+    mailcow:
+      enabled: false
+      imap-host: 127.0.0.1
+      smtp-host: 127.0.0.1

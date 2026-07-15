@@ -1,7 +1,21 @@
 # 맥 로컬 개발 — EC2 NodePort (보안그룹에 내 IP 허용 필요)
-# 비밀번호: .vscode/launch.json 의 SPRING_DATASOURCE_PASSWORD
+# 비밀값: .vscode/launch.json (SPRING_DATASOURCE_PASSWORD, MAILBOX_*, MAILCOW_API_KEY)
 spring:
   datasource:
     url: jdbc:postgresql://13.239.220.205:30432/notedb
     username: note
     password: ${SPRING_DATASOURCE_PASSWORD:}
+
+app:
+  mail:
+    domain: note.local
+    mailbox-secret: ${MAILBOX_PASSWORD_SECRET:}
+    mailbox-salt: ${MAILBOX_PASSWORD_SALT:}
+    mailcow:
+      enabled: true
+      base-url: https://127.0.0.1:8443
+      api-key: ${MAILCOW_API_KEY:}
+      imap-host: 127.0.0.1
+      imap-port: 993
+      smtp-host: 127.0.0.1
+      smtp-port: 587

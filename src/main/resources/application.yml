@@ -84,3 +84,15 @@ app:
   internal-api-key: ${AUTH_INTERNAL_API_KEY:dev-internal-key}
   mail:
     domain: ${MAIL_DOMAIN:note.local}
+    # 비밀값은 기본값 없음 — local: application-local.yml / 운영: env·Secret 필수
+    mailbox-secret: ${MAILBOX_PASSWORD_SECRET:}
+    mailbox-salt: ${MAILBOX_PASSWORD_SALT:}
+    mailcow:
+      # EC2에는 아직 Mailcow 없음. 로컬 프로파일에서만 true.
+      enabled: ${MAILCOW_ENABLED:false}
+      base-url: ${MAILCOW_BASE_URL:}
+      api-key: ${MAILCOW_API_KEY:}
+      imap-host: ${MAILCOW_IMAP_HOST:}
+      imap-port: ${MAILCOW_IMAP_PORT:993}
+      smtp-host: ${MAILCOW_SMTP_HOST:}
+      smtp-port: ${MAILCOW_SMTP_PORT:587}

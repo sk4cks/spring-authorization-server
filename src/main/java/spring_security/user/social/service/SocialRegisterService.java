@@ -4,17 +4,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import spring_security.common.security.InternalApiKeyVerifier;
 import spring_security.auth.service.AccessTokenService;
 import spring_security.common.exception.AppException;
 import spring_security.common.exception.ErrorCode;
+import spring_security.mail.MailboxPasswordCipher;
+import spring_security.mailcow.MailcowClient;
 import spring_security.user.domain.AuthProvider;
 import spring_security.user.domain.SysUser;
-import spring_security.user.social.dto.SocialRegisterRequest;
-import spring_security.user.social.dto.SocialStatusResponse;
 import spring_security.user.repository.SysUserQueryRepository;
 import spring_security.user.repository.SysUserRepository;
+import spring_security.user.social.dto.SocialRegisterRequest;
+import spring_security.user.social.dto.SocialStatusResponse;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -22,16 +25,18 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SocialRegisterService {
 
-    private final InternalApiKeyVerifier internalApiKeyVerifier;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final SysUserRepository sysUserRepository;
     private final SysUserQueryRepository sysUserQueryRepository;
     private final AccessTokenService accessTokenService;
+    private final MailcowClient mailcowClient;
+    private final MailboxPasswordCipher mailboxPasswordCipher;
 
     @Value("${app.mail.domain}")
     private String mailDomain;
 
-    public SocialStatusResponse getStatusForInternal(String apiKey, String provider, String externalId) {
-        internalApiKeyVerifier.requireValid(apiKey);
+    public SocialStatusResponse getStatus(String provider, String externalId) {
         AuthProvider authProvider = parseProvider(provider);
         return sysUserQueryRepository
                 .findByAuthProviderAndExternalId(authProvider, externalId)
@@ -40,8 +45,7 @@ public class SocialRegisterService {
     }
 
     @Transactional
-    public Map<String, Object> registerForInternal(String apiKey, SocialRegisterRequest request) {
-        internalApiKeyVerifier.requireValid(apiKey);
+    public Map<String, Object> register(SocialRegisterRequest request) {
         AuthProvider authProvider = parseProvider(request.provider());
 
         if (sysUserQueryRepository.existsByAuthProviderAndExternalId(authProvider, request.externalId())) {
@@ -65,9 +69,20 @@ public class SocialRegisterService {
                 request.userId(), mailAddress, authProvider, request.externalId(), externalEmail);
         SysUser saved = sysUserRepository.save(user);
 
+        // SNS는 앱 비밀번호가 없음 → 랜덤 메일함 비번 + IMAP용 암호 저장.
+        String mailboxPassword = randomMailboxPassword();
+        mailcowClient.createMailbox(request.userId(), mailDomain, request.userId(), mailboxPassword);
+        saved.assignMailboxPasswordEnc(mailboxPasswordCipher.encrypt(mailboxPassword));
+
         Map<String, Object> result = new LinkedHashMap<>(accessTokenService.issueAccessTokenForUser(saved));
         result.put("userId", saved.getUserId());
         return result;
+    }
+
+    private static String randomMailboxPassword() {
+        byte[] bytes = new byte[24];
+        SECURE_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private static AuthProvider parseProvider(String provider) {

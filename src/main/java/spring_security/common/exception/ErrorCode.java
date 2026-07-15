@@ -7,6 +7,7 @@ public enum ErrorCode {
     USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "User already exists"),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
     GOOGLE_GMAIL_NOT_LINKED(HttpStatus.NOT_FOUND, "Google login with Gmail scope required"),
+    MAILCOW_ERROR(HttpStatus.BAD_GATEWAY, "Mailcow mailbox provisioning failed"),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Invalid request");
 

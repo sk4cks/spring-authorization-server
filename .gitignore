@@ -36,3 +36,5 @@ out/
 ### VS Code ###
 .vscode/
 .cursor/
+### Local test config (mailbox cipher secrets etc.) ###
+src/test/resources/application-test.yml
