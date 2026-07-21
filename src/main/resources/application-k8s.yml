@@ -11,10 +11,15 @@ spring:
 
 app:
   mail:
-    domain: 13.239.220.205.nip.io
+    domain: ${MAIL_DOMAIN:note.local}
     # mailbox-secret / salt / mailcow api-key → k8s Secret env 만 (기본값 없음)
     mailbox-secret: ${MAILBOX_PASSWORD_SECRET:}
     mailbox-salt: ${MAILBOX_PASSWORD_SALT:}
     mailcow:
-      enabled: false
+      enabled: ${MAILCOW_ENABLED:false}
+      base-url: ${MAILCOW_BASE_URL:}
       api-key: ${MAILCOW_API_KEY:}
+      imap-host: ${MAILCOW_IMAP_HOST:}
+      imap-port: ${MAILCOW_IMAP_PORT:993}
+      smtp-host: ${MAILCOW_SMTP_HOST:}
+      smtp-port: ${MAILCOW_SMTP_PORT:587}
