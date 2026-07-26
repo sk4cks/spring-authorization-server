@@ -7,7 +7,7 @@ spring:
   security:
     oauth2:
       authorizationserver:
-        issuer: https://auth.13.239.220.205.nip.io
+        issuer: https://auth.52.78.20.70.nip.io
 
 app:
   mail:
