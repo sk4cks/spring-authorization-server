@@ -21,8 +21,8 @@ import java.util.Map;
 /**
  * Mailcow REST API 클라이언트.
  * <p>
- * 로컬: {@code https://127.0.0.1:8443} + self-signed.<br/>
- * EC2에는 아직 Mailcow 없음 → {@code app.mail.mailcow.enabled=false}.
+ * Compose(로컬·EC2 호스트): {@code https://host:8443} + self-signed trust.
+ * {@code app.mail.mailcow.enabled=false} 이면 no-op.
  */
 @Component
 @EnableConfigurationProperties(MailcowProperties.class)
