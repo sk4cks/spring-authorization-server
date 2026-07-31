@@ -44,7 +44,7 @@ public class DefaultSecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session

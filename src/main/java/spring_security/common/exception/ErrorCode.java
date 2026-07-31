@@ -9,6 +9,7 @@ public enum ErrorCode {
     GOOGLE_GMAIL_NOT_LINKED(HttpStatus.NOT_FOUND, "Google login with Gmail scope required"),
     MAILCOW_ERROR(HttpStatus.BAD_GATEWAY, "Mailcow mailbox provisioning failed"),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Invalid userId or password"),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Invalid request");
 
     private final HttpStatus status;

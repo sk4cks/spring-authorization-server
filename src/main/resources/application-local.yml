@@ -1,5 +1,5 @@
-# 맥 로컬 개발 — Docker Compose Postgres + 로컬 Mailcow
-# Postgres: docker compose up -d  (user/db = note/notedb, 비번은 .env / launch.json)
+# 맥 로컬 개발 — Docker Postgres + 로컬 Mailcow
+# Postgres: ~/code/apps/postgresql-dockerized 에서 docker compose up -d
 # 비밀값: .vscode/launch.json (SPRING_DATASOURCE_PASSWORD, MAILBOX_*, MAILCOW_API_KEY)
 spring:
   datasource:
