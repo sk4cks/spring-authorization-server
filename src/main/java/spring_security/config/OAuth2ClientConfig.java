@@ -64,6 +64,7 @@ public class OAuth2ClientConfig {
         if (registrationId == null) {
             return request;
         }
+
         return customizeGoogle(request, registrationId.toString());
     }
 
@@ -71,6 +72,7 @@ public class OAuth2ClientConfig {
         if (request == null || !"google".equals(clientRegistrationId)) {
             return request;
         }
+
         return OAuth2AuthorizationRequest.from(request)
                 .additionalParameters(params -> {
                     params.put("access_type", "offline");

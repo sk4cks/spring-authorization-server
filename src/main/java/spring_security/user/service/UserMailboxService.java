@@ -31,6 +31,7 @@ public class UserMailboxService {
         }
 
         String plainPassword = mailboxPasswordCipher.decrypt(user.getMailboxPasswordEnc());
+
         return new MailboxCredentialsResponse(
                 user.getMailAddress(),
                 plainPassword,

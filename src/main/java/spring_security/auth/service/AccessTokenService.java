@@ -141,6 +141,7 @@ public class AccessTokenService {
         result.put("refresh_token", refreshToken.getTokenValue());
         result.put("scope", scope);
         result.put("mailAddress", user.getMailAddress());
+
         return result;
     }
 
@@ -164,6 +165,7 @@ public class AccessTokenService {
         if (authentication != null) {
             return authentication;
         }
+
         return new UsernamePasswordAuthenticationToken(username, "N/A");
     }
 }

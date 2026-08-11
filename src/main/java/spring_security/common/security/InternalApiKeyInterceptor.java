@@ -21,6 +21,7 @@ public class InternalApiKeyInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         internalApiKeyVerifier.requireValid(request.getHeader(HEADER_NAME));
+
         return true;
     }
 }

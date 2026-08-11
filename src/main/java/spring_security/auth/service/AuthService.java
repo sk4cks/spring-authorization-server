@@ -27,12 +27,14 @@ public class AuthService {
         Authentication auth;
         try {
             auth = authenticationManager.authenticate(authToken);
+
         } catch (AuthenticationException ex) {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, ex);
         }
 
         Map<String, Object> result = new HashMap<>(accessTokenService.issueAccessToken(auth, param.userId()));
         result.put("userId", param.userId());
+
         return result;
     }
 }

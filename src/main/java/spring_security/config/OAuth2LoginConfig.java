@@ -21,6 +21,7 @@ public class OAuth2LoginConfig {
     @Bean
     public OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService() {
         DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
+
         return userRequest -> {
             OAuth2User user = delegate.loadUser(userRequest);
             String registrationId = userRequest.getClientRegistration().getRegistrationId();
@@ -32,6 +33,7 @@ public class OAuth2LoginConfig {
                 return new DefaultOAuth2User(
                         user.getAuthorities(), flattenNaverAttributes(user.getAttributes()), "id");
             }
+
             return new DefaultOAuth2User(user.getAuthorities(), user.getAttributes(), "sub");
         };
     }
@@ -52,6 +54,7 @@ public class OAuth2LoginConfig {
             }
         }
         flat.put("provider", "kakao");
+
         return flat;
     }
 
@@ -67,6 +70,7 @@ public class OAuth2LoginConfig {
             }
         }
         flat.put("provider", "naver");
+
         return flat;
     }
 
@@ -74,8 +78,10 @@ public class OAuth2LoginConfig {
     @Bean
     public OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
         OidcUserService delegate = new OidcUserService();
+
         return userRequest -> {
             OidcUser user = delegate.loadUser(userRequest);
+
             return new DefaultOidcUser(
                     user.getAuthorities(), user.getIdToken(), user.getUserInfo(), "email");
         };

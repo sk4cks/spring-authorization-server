@@ -33,6 +33,7 @@ public class SysUserQueryRepository {
                         sysUser.status.eq(status),
                         notDeleted())
                 .fetchOne();
+
         return Optional.ofNullable(result);
     }
 
@@ -41,6 +42,7 @@ public class SysUserQueryRepository {
                 .selectFrom(sysUser)
                 .where(sysUser.userId.eq(userId), notDeleted())
                 .fetchOne();
+
         return Optional.ofNullable(result);
     }
 
@@ -50,6 +52,7 @@ public class SysUserQueryRepository {
                 .from(sysUser)
                 .where(sysUser.userId.eq(userId), notDeleted())
                 .fetchFirst();
+
         return found != null;
     }
 
@@ -59,6 +62,7 @@ public class SysUserQueryRepository {
                 .from(sysUser)
                 .where(sysUser.mailAddress.eq(mailAddress), notDeleted())
                 .fetchFirst();
+
         return found != null;
     }
 
@@ -70,6 +74,7 @@ public class SysUserQueryRepository {
                         sysUser.externalId.eq(externalId),
                         notDeleted())
                 .fetchOne();
+
         return Optional.ofNullable(result);
     }
 
@@ -82,6 +87,7 @@ public class SysUserQueryRepository {
                         sysUser.externalId.eq(externalId),
                         notDeleted())
                 .fetchFirst();
+
         return found != null;
     }
 }

@@ -20,6 +20,7 @@ public class GoogleGmailTokenController {
     @GetMapping("/access-token")
     public ResponseEntity<Map<String, String>> accessToken(@RequestParam String principal) {
         String accessToken = googleGmailTokenService.getAccessToken(principal);
+
         return ResponseEntity.ok(Map.of("accessToken", accessToken));
     }
 }

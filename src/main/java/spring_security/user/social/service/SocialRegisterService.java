@@ -38,6 +38,7 @@ public class SocialRegisterService {
 
     public SocialStatusResponse getStatus(String provider, String externalId) {
         AuthProvider authProvider = parseProvider(provider);
+
         return sysUserQueryRepository
                 .findByAuthProviderAndExternalId(authProvider, externalId)
                 .map(user -> new SocialStatusResponse(true, user.getUserId()))
@@ -76,18 +77,21 @@ public class SocialRegisterService {
 
         Map<String, Object> result = new LinkedHashMap<>(accessTokenService.issueAccessTokenForUser(saved));
         result.put("userId", saved.getUserId());
+
         return result;
     }
 
     private static String randomMailboxPassword() {
         byte[] bytes = new byte[24];
         SECURE_RANDOM.nextBytes(bytes);
+
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private static AuthProvider parseProvider(String provider) {
         try {
             return AuthProvider.valueOf(provider.trim().toUpperCase());
+
         } catch (IllegalArgumentException ex) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Unknown provider: " + provider);
         }

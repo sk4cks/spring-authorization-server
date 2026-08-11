@@ -68,6 +68,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
         HttpSession session = request.getSession(false);
         if (session == null) {
             savedRequestHandler.onAuthenticationSuccess(request, response, authentication);
+
             return;
         }
 
@@ -77,6 +78,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
 
         if (!StringUtils.hasText(state) || !StringUtils.hasText(codeChallenge) || !StringUtils.hasText(redirectUri)) {
             savedRequestHandler.onAuthenticationSuccess(request, response, authentication);
+
             return;
         }
 
@@ -87,6 +89,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
         RegisteredClient client = clientRepository.findByClientId(SPA_CLIENT_ID);
         if (client == null) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "SPA client not configured");
+
             return;
         }
 
@@ -176,6 +179,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
                 return provider + ":" + id;
             }
         }
+
         return authentication.getName();
     }
 
@@ -183,6 +187,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
         if (value instanceof String s && StringUtils.hasText(s)) {
             return s;
         }
+
         return null;
     }
 
@@ -204,6 +209,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
         if (principal instanceof OidcUser oidcUser) {
             String externalId = oidcUser.getSubject();
             String email = asNonBlankString(oidcUser.getEmail());
+
             return new SnsIdentity(provider, externalId, email);
         }
         if (principal instanceof OAuth2User oauth2User) {
@@ -212,8 +218,10 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
                 return null;
             }
             String externalEmail = asNonBlankString(oauth2User.getAttribute("email"));
+
             return new SnsIdentity(provider, id.toString(), externalEmail);
         }
+
         return null;
     }
 

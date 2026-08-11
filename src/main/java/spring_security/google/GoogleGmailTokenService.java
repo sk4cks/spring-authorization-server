@@ -27,6 +27,7 @@ public class GoogleGmailTokenService {
         if (!StringUtils.hasText(principal)) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "principal required");
         }
+
         return getValidAccessToken(principal);
     }
 
@@ -54,6 +55,7 @@ public class GoogleGmailTokenService {
 
     private static boolean isExpiredSoon(OAuth2AuthorizedClient client) {
         Instant expiresAt = client.getAccessToken().getExpiresAt();
+
         return expiresAt != null && expiresAt.isBefore(Instant.now().plusSeconds(60));
     }
 

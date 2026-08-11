@@ -28,7 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RegisterServiceTest {
+class UserRegisterServiceTest {
 
   @Mock
   private SysUserRepository sysUserRepository;
@@ -45,11 +45,11 @@ class RegisterServiceTest {
   @Mock
   private MailboxPasswordCipher mailboxPasswordCipher;
 
-  private RegisterService registerService;
+  private UserRegisterService userRegisterService;
 
   @BeforeEach
   void setUp() {
-    registerService = new RegisterService(
+    userRegisterService = new UserRegisterService(
             sysUserRepository, sysUserQueryRepository, passwordEncoder, mailcowClient, mailboxPasswordCipher);
     setMailDomain("note.local");
   }
@@ -62,7 +62,7 @@ class RegisterServiceTest {
     when(mailboxPasswordCipher.encrypt("1234")).thenReturn("enc-1234");
     when(sysUserRepository.save(any(SysUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-    UserResponse response = registerService.register(new RegisterRequest("sk4cks", "1234"));
+    UserResponse response = userRegisterService.register(new RegisterRequest("sk4cks", "1234"));
 
     assertThat(response.userId()).isEqualTo("sk4cks");
     assertThat(response.mailAddress()).isEqualTo("sk4cks@note.local");
@@ -77,25 +77,54 @@ class RegisterServiceTest {
     verify(mailboxPasswordCipher).encrypt("1234");
   }
 
-    @Test
-    void register_throwsWhenUserIdExists() {
-        when(sysUserQueryRepository.existsByUserId("sk4cks")).thenReturn(true);
+  @Test
+  void register_throwsWhenUserIdExists() {
+    when(sysUserQueryRepository.existsByUserId("sk4cks")).thenReturn(true);
 
-        assertThatThrownBy(() -> registerService.register(new RegisterRequest("sk4cks", "1234")))
-                .isInstanceOf(AppException.class)
-                .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
-                        .isEqualTo(ErrorCode.USER_ALREADY_EXISTS));
+    assertThatThrownBy(() -> userRegisterService.register(new RegisterRequest("sk4cks", "1234")))
+            .isInstanceOf(AppException.class)
+            .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
+                    .isEqualTo(ErrorCode.USER_ALREADY_EXISTS));
 
-        verify(sysUserRepository, never()).save(any());
+    verify(sysUserRepository, never()).save(any());
+  }
+
+  @Test
+  void checkUserId_available_whenNotExists() {
+    when(sysUserQueryRepository.existsByUserId("sk4cks")).thenReturn(false);
+    when(sysUserQueryRepository.existsByMailAddress("sk4cks@note.local")).thenReturn(false);
+
+    var response = userRegisterService.checkUserId("sk4cks");
+
+    assertThat(response.userId()).isEqualTo("sk4cks");
+    assertThat(response.available()).isTrue();
+  }
+
+  @Test
+  void checkUserId_unavailable_whenUserIdExists() {
+    when(sysUserQueryRepository.existsByUserId("sk4cks")).thenReturn(true);
+
+    var response = userRegisterService.checkUserId("sk4cks");
+
+    assertThat(response.available()).isFalse();
+  }
+
+  @Test
+  void checkUserId_throws_whenFormatInvalid() {
+    assertThatThrownBy(() -> userRegisterService.checkUserId("ab"))
+        .isInstanceOf(AppException.class)
+        .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.INVALID_REQUEST));
+  }
+
+  private void setMailDomain(String domain) {
+    try {
+      var field = UserRegisterService.class.getDeclaredField("mailDomain");
+      field.setAccessible(true);
+      field.set(userRegisterService, domain);
+
+    } catch (ReflectiveOperationException ex) {
+      throw new IllegalStateException(ex);
     }
-
-    private void setMailDomain(String domain) {
-        try {
-            var field = RegisterService.class.getDeclaredField("mailDomain");
-            field.setAccessible(true);
-            field.set(registerService, domain);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException(ex);
-        }
-    }
+  }
 }

@@ -51,6 +51,7 @@ public class MailcowClient {
     public void createMailbox(String localPart, String domain, String displayName, String password) {
         if (!properties.enabled()) {
             log.debug("Mailcow disabled — skip mailbox create for {}@{}", localPart, domain);
+
             return;
         }
         if (!StringUtils.hasText(properties.apiKey()) || !StringUtils.hasText(properties.baseUrl())) {
@@ -83,6 +84,7 @@ public class MailcowClient {
                 throw new AppException(ErrorCode.MAILCOW_ERROR, "Failed to create mailbox: " + localPart + "@" + domain);
             }
             log.info("Mailcow mailbox created: {}@{}", localPart, domain);
+
         } catch (RestClientException ex) {
             log.error("Mailcow API call failed for {}@{}", localPart, domain, ex);
             throw new AppException(ErrorCode.MAILCOW_ERROR, "Mailcow API unavailable: " + ex.getMessage());
@@ -93,6 +95,7 @@ public class MailcowClient {
         if (baseUrl.endsWith("/")) {
             return baseUrl.substring(0, baseUrl.length() - 1);
         }
+
         return baseUrl;
     }
 }

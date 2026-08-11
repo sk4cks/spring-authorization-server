@@ -20,10 +20,9 @@ import spring_security.user.domain.AuthProvider;
 import spring_security.user.domain.UserStatus;
 import spring_security.user.dto.MailboxCredentialsResponse;
 import spring_security.user.dto.UserResponse;
-import spring_security.user.service.RegisterService;
 import spring_security.user.service.UserMailboxService;
-import spring_security.user.service.UserQueryService;
-import spring_security.user.service.UserWithdrawService;
+import spring_security.user.service.UserRegisterService;
+import spring_security.user.service.UserService;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -33,7 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {RegisterController.class, UserInternalController.class})
+@WebMvcTest(controllers = {UserRegisterController.class, UserInternalController.class})
 @Import({
     GlobalExceptionHandler.class,
     InternalApiKeyWebConfig.class,
@@ -49,20 +48,17 @@ class UserControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private RegisterService registerService;
+    private UserRegisterService userRegisterService;
 
     @MockBean
-    private UserQueryService userQueryService;
-
-    @MockBean
-    private UserWithdrawService userWithdrawService;
+    private UserService userService;
 
     @MockBean
     private UserMailboxService userMailboxService;
 
     @Test
     void register_returnsCreated() throws Exception {
-        when(registerService.register(org.mockito.ArgumentMatchers.any()))
+        when(userRegisterService.register(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new UserResponse(1L, "sk4cks", "sk4cks@note.local", AuthProvider.LOCAL, UserStatus.ACTIVE));
 
         mockMvc.perform(post("/auth/register")
@@ -75,7 +71,7 @@ class UserControllerTest {
 
     @Test
     void register_returnsConflictWhenDuplicate() throws Exception {
-        when(registerService.register(org.mockito.ArgumentMatchers.any()))
+        when(userRegisterService.register(org.mockito.ArgumentMatchers.any()))
                 .thenThrow(new AppException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: sk4cks"));
 
         mockMvc.perform(post("/auth/register")
@@ -87,7 +83,7 @@ class UserControllerTest {
 
     @Test
     void getUser_returnsUserWhenApiKeyValid() throws Exception {
-        when(userQueryService.findByUserId("sk4cks"))
+        when(userService.findByUserId("sk4cks"))
                 .thenReturn(new UserResponse(1L, "sk4cks", "sk4cks@note.local", AuthProvider.LOCAL, UserStatus.ACTIVE));
 
         mockMvc.perform(get("/auth/users/sk4cks").header("X-Internal-Api-Key", "dev-internal-key"))
@@ -101,7 +97,7 @@ class UserControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
 
-        verifyNoInteractions(userQueryService);
+        verifyNoInteractions(userService);
     }
 
     @Test
@@ -110,7 +106,7 @@ class UserControllerTest {
                         post("/auth/users/sk4cks/withdraw").header("X-Internal-Api-Key", "dev-internal-key"))
                 .andExpect(status().isNoContent());
 
-        verify(userWithdrawService).withdraw("sk4cks");
+        verify(userService).withdraw("sk4cks");
     }
 
     @Test
