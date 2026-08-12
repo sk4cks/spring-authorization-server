@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import spring_security.auth.service.AccessTokenService;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 import spring_security.mail.MailboxPasswordCipher;
 import spring_security.mailcow.MailcowClient;
@@ -50,15 +50,15 @@ public class SocialRegisterService {
         AuthProvider authProvider = parseProvider(request.provider());
 
         if (sysUserQueryRepository.existsByAuthProviderAndExternalId(authProvider, request.externalId())) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS, "Social account already registered");
+            throw new ApiException(ErrorCode.USER_ALREADY_EXISTS, "Social account already registered");
         }
         if (sysUserQueryRepository.existsByUserId(request.userId())) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
+            throw new ApiException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
         }
 
         String mailAddress = request.userId() + "@" + mailDomain;
         if (sysUserQueryRepository.existsByMailAddress(mailAddress)) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
+            throw new ApiException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
         }
 
         String externalEmail = request.externalEmail();
@@ -93,7 +93,7 @@ public class SocialRegisterService {
             return AuthProvider.valueOf(provider.trim().toUpperCase());
 
         } catch (IllegalArgumentException ex) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Unknown provider: " + provider);
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "Unknown provider: " + provider);
         }
     }
 }

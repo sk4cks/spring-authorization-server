@@ -3,7 +3,7 @@ package spring_security.common.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 
 @Component
@@ -18,7 +18,7 @@ public class InternalApiKeyVerifier {
 
     public void requireValid(String apiKey) {
         if (!isValid(apiKey)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
     }
 }

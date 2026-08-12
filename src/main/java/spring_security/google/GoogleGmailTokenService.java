@@ -9,7 +9,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 
 import java.time.Instant;
@@ -25,7 +25,7 @@ public class GoogleGmailTokenService {
 
     public String getAccessToken(String principal) {
         if (!StringUtils.hasText(principal)) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "principal required");
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "principal required");
         }
 
         return getValidAccessToken(principal);
@@ -35,7 +35,7 @@ public class GoogleGmailTokenService {
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
                 GOOGLE_REGISTRATION_ID, principalName);
         if (client == null) {
-            throw new AppException(ErrorCode.GOOGLE_GMAIL_NOT_LINKED);
+            throw new ApiException(ErrorCode.GOOGLE_GMAIL_NOT_LINKED);
         }
 
         if (isExpiredSoon(client)) {
@@ -46,7 +46,7 @@ public class GoogleGmailTokenService {
 
             client = authorizedClientManager.authorize(authorizeRequest);
             if (client == null || client.getAccessToken() == null) {
-                throw new AppException(ErrorCode.GOOGLE_GMAIL_NOT_LINKED);
+                throw new ApiException(ErrorCode.GOOGLE_GMAIL_NOT_LINKED);
             }
         }
 

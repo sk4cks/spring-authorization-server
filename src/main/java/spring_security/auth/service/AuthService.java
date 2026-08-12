@@ -7,7 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import spring_security.auth.dto.LoginRequest;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 
 import java.util.HashMap;
@@ -29,7 +29,7 @@ public class AuthService {
             auth = authenticationManager.authenticate(authToken);
 
         } catch (AuthenticationException ex) {
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS, ex);
+            throw new ApiException(ErrorCode.INVALID_CREDENTIALS, ex);
         }
 
         Map<String, Object> result = new HashMap<>(accessTokenService.issueAccessToken(auth, param.userId()));

@@ -10,7 +10,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import spring_security.auth.dto.LoginRequest;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 
 import java.util.Map;
@@ -49,14 +49,14 @@ class AuthServiceTest {
     }
 
     @Test
-    void login_wrapsAuthenticationFailureAsAppException() {
+    void login_wrapsAuthenticationFailureAsApiException() {
         LoginRequest request = new LoginRequest("sk4cks", "wrong");
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("bad"));
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(AppException.class)
-                .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
+                .isInstanceOf(ApiException.class)
+                .satisfies(ex -> assertThat(((ApiException) ex).getErrorCode())
                         .isEqualTo(ErrorCode.INVALID_CREDENTIALS))
                 .hasCauseInstanceOf(BadCredentialsException.class);
     }

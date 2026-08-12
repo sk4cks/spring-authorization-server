@@ -6,7 +6,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 import spring_security.mail.MailboxPasswordCipher;
 import spring_security.mailcow.MailcowClient;
@@ -49,12 +49,12 @@ public class UserRegisterService {
     @Transactional
     public UserResponse register(RegisterRequest request) {
         if (sysUserQueryRepository.existsByUserId(request.userId())) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
+            throw new ApiException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
         }
 
         String mailAddress = request.userId() + "@" + mailDomain;
         if (sysUserQueryRepository.existsByMailAddress(mailAddress)) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
+            throw new ApiException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
         }
 
         String passwordHash = passwordEncoder.encode(request.password());
@@ -70,13 +70,13 @@ public class UserRegisterService {
 
     private void validateUserIdFormat(String userId) {
         if (!StringUtils.hasText(userId)) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "아이디를 입력해 주세요");
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "아이디를 입력해 주세요");
         }
         if (userId.length() < 3 || userId.length() > 64) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "아이디는 3자 이상 64자 이하여야 합니다");
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "아이디는 3자 이상 64자 이하여야 합니다");
         }
         if (!userId.matches(USER_ID_PATTERN)) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "아이디는 영문, 숫자, 밑줄(_)만 사용할 수 있습니다");
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "아이디는 영문, 숫자, 밑줄(_)만 사용할 수 있습니다");
         }
     }
 }

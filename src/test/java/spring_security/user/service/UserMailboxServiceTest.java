@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 import spring_security.mail.MailboxPasswordCipher;
 import spring_security.mailcow.MailcowProperties;
@@ -57,7 +57,7 @@ class UserMailboxServiceTest {
         when(sysUserQueryRepository.findByUserId("missing")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userMailboxService.getMailbox("missing"))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApiException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
@@ -68,7 +68,7 @@ class UserMailboxServiceTest {
         when(sysUserQueryRepository.findByUserId("sk4cks")).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> userMailboxService.getMailbox("sk4cks"))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApiException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }

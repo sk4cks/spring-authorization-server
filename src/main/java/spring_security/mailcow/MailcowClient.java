@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 
 import java.util.LinkedHashMap;
@@ -55,7 +55,7 @@ public class MailcowClient {
             return;
         }
         if (!StringUtils.hasText(properties.apiKey()) || !StringUtils.hasText(properties.baseUrl())) {
-            throw new AppException(ErrorCode.MAILCOW_ERROR, "Mailcow API is enabled but base-url/api-key missing");
+            throw new ApiException(ErrorCode.MAILCOW_ERROR, "Mailcow API is enabled but base-url/api-key missing");
         }
 
         String url = trimTrailingSlash(properties.baseUrl()) + "/api/v1/add/mailbox";
@@ -81,13 +81,13 @@ public class MailcowClient {
             String responseBody = response.getBody() != null ? response.getBody() : "";
             if (!response.getStatusCode().is2xxSuccessful() || responseBody.contains("\"type\":\"error\"")) {
                 log.error("Mailcow create mailbox failed: status={} body={}", response.getStatusCode(), responseBody);
-                throw new AppException(ErrorCode.MAILCOW_ERROR, "Failed to create mailbox: " + localPart + "@" + domain);
+                throw new ApiException(ErrorCode.MAILCOW_ERROR, "Failed to create mailbox: " + localPart + "@" + domain);
             }
             log.info("Mailcow mailbox created: {}@{}", localPart, domain);
 
         } catch (RestClientException ex) {
             log.error("Mailcow API call failed for {}@{}", localPart, domain, ex);
-            throw new AppException(ErrorCode.MAILCOW_ERROR, "Mailcow API unavailable: " + ex.getMessage());
+            throw new ApiException(ErrorCode.MAILCOW_ERROR, "Mailcow API unavailable: " + ex.getMessage());
         }
     }
 

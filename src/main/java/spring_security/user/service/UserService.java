@@ -3,7 +3,7 @@ package spring_security.user.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 import spring_security.user.domain.SysUser;
 import spring_security.user.dto.UserResponse;
@@ -22,7 +22,7 @@ public class UserService {
     public UserResponse findByUserId(String userId) {
         return sysUserQueryRepository.findByUserId(userId)
                 .map(UserResponse::from)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
     }
 
     /** BFF 전용 — 회원 탈퇴(soft delete). API key: InternalApiKeyInterceptor */
@@ -30,7 +30,7 @@ public class UserService {
     public void withdraw(String userId) {
         SysUser user = sysUserQueryRepository
                 .findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
         user.softDelete(user.getUserSeq());
         sysUserRepository.save(user);
     }

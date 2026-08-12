@@ -1,20 +1,20 @@
 package spring_security.common.exception;
 
-public class AppException extends RuntimeException {
+public class ApiException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
-    public AppException(ErrorCode errorCode) {
+    public ApiException(ErrorCode errorCode) {
         super(errorCode.getDefaultMessage());
         this.errorCode = errorCode;
     }
 
-    public AppException(ErrorCode errorCode, String message) {
+    public ApiException(ErrorCode errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
     }
 
-    public AppException(ErrorCode errorCode, Throwable cause) {
+    public ApiException(ErrorCode errorCode, Throwable cause) {
         super(errorCode.getDefaultMessage(), cause);
         this.errorCode = errorCode;
     }

@@ -7,7 +7,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 import spring_security.mail.MailboxPasswordCipher;
 import spring_security.mailcow.MailcowClient;
@@ -82,8 +82,8 @@ class UserRegisterServiceTest {
     when(sysUserQueryRepository.existsByUserId("sk4cks")).thenReturn(true);
 
     assertThatThrownBy(() -> userRegisterService.register(new RegisterRequest("sk4cks", "1234")))
-            .isInstanceOf(AppException.class)
-            .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
+            .isInstanceOf(ApiException.class)
+            .satisfies(ex -> assertThat(((ApiException) ex).getErrorCode())
                     .isEqualTo(ErrorCode.USER_ALREADY_EXISTS));
 
     verify(sysUserRepository, never()).save(any());
@@ -112,8 +112,8 @@ class UserRegisterServiceTest {
   @Test
   void checkUserId_throws_whenFormatInvalid() {
     assertThatThrownBy(() -> userRegisterService.checkUserId("ab"))
-        .isInstanceOf(AppException.class)
-        .satisfies(ex -> assertThat(((AppException) ex).getErrorCode())
+        .isInstanceOf(ApiException.class)
+        .satisfies(ex -> assertThat(((ApiException) ex).getErrorCode())
             .isEqualTo(ErrorCode.INVALID_REQUEST));
   }
 

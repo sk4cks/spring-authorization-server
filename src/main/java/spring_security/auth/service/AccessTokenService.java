@@ -18,7 +18,7 @@ import org.springframework.security.oauth2.server.authorization.settings.Authori
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import spring_security.user.domain.SysUser;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 import spring_security.user.repository.SysUserQueryRepository;
 
@@ -70,7 +70,7 @@ public class AccessTokenService {
 
         String username = resolveUsername(authentication, userId);
         SysUser user = sysUserQueryRepository.findByUserId(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found: " + username));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "User not found: " + username));
 
         return issueAccessTokenForUser(user, authentication);
     }

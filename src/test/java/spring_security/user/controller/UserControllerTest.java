@@ -10,7 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 import spring_security.common.exception.GlobalExceptionHandler;
 import spring_security.common.security.InternalApiKeyInterceptor;
@@ -72,7 +72,7 @@ class UserControllerTest {
     @Test
     void register_returnsConflictWhenDuplicate() throws Exception {
         when(userRegisterService.register(org.mockito.ArgumentMatchers.any()))
-                .thenThrow(new AppException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: sk4cks"));
+                .thenThrow(new ApiException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: sk4cks"));
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

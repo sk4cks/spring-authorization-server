@@ -9,7 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import spring_security.auth.service.AccessTokenService;
-import spring_security.common.exception.AppException;
+import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
 import spring_security.mail.MailboxPasswordCipher;
 import spring_security.mailcow.MailcowClient;
@@ -91,7 +91,7 @@ class SocialRegisterServiceTest {
 
         assertThatThrownBy(() -> socialRegisterService.register(
                         new SocialRegisterRequest("KAKAO", "1", null, "sk4cks")))
-                .isInstanceOf(AppException.class)
+                .isInstanceOf(ApiException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.USER_ALREADY_EXISTS);
     }
