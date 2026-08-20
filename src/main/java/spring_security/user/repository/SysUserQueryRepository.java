@@ -46,6 +46,15 @@ public class SysUserQueryRepository {
         return Optional.ofNullable(result);
     }
 
+    public Optional<SysUser> findByUserSeq(Long userSeq) {
+        SysUser result = queryFactory
+                .selectFrom(sysUser)
+                .where(sysUser.userSeq.eq(userSeq), notDeleted())
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
+
     public boolean existsByUserId(String userId) {
         Integer found = queryFactory
                 .selectOne()
