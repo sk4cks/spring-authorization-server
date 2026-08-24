@@ -12,13 +12,6 @@ public interface MailContactGroupRepository extends JpaRepository<MailContactGro
 
     @Query("""
             select g from MailContactGroup g
-            where g.ownerUserSeq = :ownerUserSeq and g.delYn = 'N'
-            order by lower(g.name)
-            """)
-    List<MailContactGroup> findActiveByOwner(@Param("ownerUserSeq") Long ownerUserSeq);
-
-    @Query("""
-            select g from MailContactGroup g
             where g.groupSeq = :groupSeq and g.delYn = 'N'
             """)
     Optional<MailContactGroup> findActiveBySeq(@Param("groupSeq") Long groupSeq);
@@ -33,16 +26,4 @@ public interface MailContactGroupRepository extends JpaRepository<MailContactGro
             order by lower(g.name)
             """)
     List<MailContactGroup> findAccessibleByUser(@Param("userSeq") Long userSeq);
-
-    @Query("""
-            select g from MailContactGroup g
-            where g.delYn = 'N'
-              and lower(g.name) like lower(concat('%', :q, '%'))
-              and (g.ownerUserSeq = :userSeq
-                   or g.groupSeq in (
-                        select s.groupSeq from MailContactGroupShare s
-                        where s.sharedWithUserSeq = :userSeq and s.delYn = 'N'))
-            order by lower(g.name)
-            """)
-    List<MailContactGroup> searchAccessibleByUser(@Param("userSeq") Long userSeq, @Param("q") String q);
 }

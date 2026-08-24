@@ -4,11 +4,15 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 import spring_security.user.domain.AuthProvider;
 import spring_security.common.constants.DelYn;
 import spring_security.user.domain.SysUser;
 import spring_security.user.domain.UserStatus;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static spring_security.user.domain.QSysUser.sysUser;
@@ -50,6 +54,54 @@ public class SysUserQueryRepository {
         SysUser result = queryFactory
                 .selectFrom(sysUser)
                 .where(sysUser.userSeq.eq(userSeq), notDeleted())
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
+
+    public List<SysUser> findAllActive() {
+        return queryFactory
+                .selectFrom(sysUser)
+                .where(notDeleted())
+                .orderBy(sysUser.userId.asc())
+                .fetch();
+    }
+
+    public List<SysUser> findActiveByUserSeqs(Collection<Long> userSeqs) {
+        if (userSeqs == null || userSeqs.isEmpty()) {
+            return List.of();
+        }
+        return queryFactory
+                .selectFrom(sysUser)
+                .where(sysUser.userSeq.in(userSeqs), notDeleted())
+                .orderBy(sysUser.userId.asc())
+                .fetch();
+    }
+
+    public boolean existsActiveMailIgnoreCase(String mailAddress) {
+        if (!StringUtils.hasText(mailAddress)) {
+            return false;
+        }
+        Integer found = queryFactory
+                .selectOne()
+                .from(sysUser)
+                .where(
+                        notDeleted(),
+                        sysUser.mailAddress.lower().eq(mailAddress.trim().toLowerCase(Locale.ROOT)))
+                .fetchFirst();
+
+        return found != null;
+    }
+
+    public Optional<SysUser> findActiveByMailIgnoreCase(String mailAddress) {
+        if (!StringUtils.hasText(mailAddress)) {
+            return Optional.empty();
+        }
+        SysUser result = queryFactory
+                .selectFrom(sysUser)
+                .where(
+                        notDeleted(),
+                        sysUser.mailAddress.lower().eq(mailAddress.trim().toLowerCase(Locale.ROOT)))
                 .fetchOne();
 
         return Optional.ofNullable(result);

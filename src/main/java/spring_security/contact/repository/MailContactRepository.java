@@ -19,15 +19,6 @@ public interface MailContactRepository extends JpaRepository<MailContact, Long> 
 
     @Query("""
             select c from MailContact c
-            where c.userSeq = :userSeq and c.delYn = 'N'
-              and (lower(c.email) like lower(concat('%', :q, '%'))
-                   or lower(coalesce(c.displayName, '')) like lower(concat('%', :q, '%')))
-            order by lower(coalesce(c.displayName, c.email))
-            """)
-    List<MailContact> searchActiveByUserSeq(@Param("userSeq") Long userSeq, @Param("q") String q);
-
-    @Query("""
-            select c from MailContact c
             where c.contactSeq = :contactSeq and c.userSeq = :userSeq and c.delYn = 'N'
             """)
     Optional<MailContact> findActiveBySeqAndUser(
@@ -41,10 +32,10 @@ public interface MailContactRepository extends JpaRepository<MailContact, Long> 
 
     @Query("""
             select c from MailContact c
-            where c.contactSeq in :ids and c.userSeq = :userSeq and c.delYn = 'N'
+            where c.userSeq = :userSeq and c.delYn = 'N' and lower(c.email) = lower(:email)
             """)
-    List<MailContact> findActiveBySeqsAndUser(
-            @Param("ids") List<Long> ids, @Param("userSeq") Long userSeq);
+    Optional<MailContact> findActiveByUserAndEmail(
+            @Param("userSeq") Long userSeq, @Param("email") String email);
 
     @Query("""
             select c from MailContact c

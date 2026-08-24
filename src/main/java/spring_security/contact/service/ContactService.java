@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import spring_security.common.exception.ApiException;
 import spring_security.common.exception.ErrorCode;
+import spring_security.common.util.KoreanTextMatcher;
 import spring_security.contact.domain.ContactSharePermission;
 import spring_security.contact.domain.MailContact;
 import spring_security.contact.domain.MailContactGroup;
@@ -28,10 +29,12 @@ import spring_security.user.repository.SysUserQueryRepository;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,19 +49,15 @@ public class ContactService {
 
     @Transactional(readOnly = true)
     public List<ContactResponse> listContacts(String userId, String q) {
-        SysUser user = requireUser(userId);
-        List<MailContact> contacts = StringUtils.hasText(q)
-                ? contactRepository.searchActiveByUserSeq(user.getUserSeq(), q.trim())
-                : contactRepository.findActiveByUserSeq(user.getUserSeq());
-
-        return contacts.stream().map(ContactResponse::from).toList();
+        return collectContacts(requireUser(userId), q == null ? "" : q.trim());
     }
 
     @Transactional
     public ContactResponse createContact(String userId, ContactRequest request) {
         SysUser user = requireUser(userId);
         String email = request.email().trim();
-        if (contactRepository.existsActiveEmail(user.getUserSeq(), email)) {
+        if (sysUserQueryRepository.existsActiveMailIgnoreCase(email)
+                || contactRepository.existsActiveEmail(user.getUserSeq(), email)) {
             throw new ApiException(ErrorCode.CONTACT_ALREADY_EXISTS);
         }
         MailContact saved = contactRepository.save(
@@ -68,35 +67,23 @@ public class ContactService {
     }
 
     @Transactional
-    public ContactResponse updateContact(String userId, Long contactId, ContactRequest request) {
-        SysUser user = requireUser(userId);
-        MailContact contact = contactRepository
-                .findActiveBySeqAndUser(contactId, user.getUserSeq())
-                .orElseThrow(() -> new ApiException(ErrorCode.CONTACT_NOT_FOUND));
-        String email = request.email().trim();
-        if (!contact.getEmail().equalsIgnoreCase(email)
-                && contactRepository.existsActiveEmail(user.getUserSeq(), email)) {
-            throw new ApiException(ErrorCode.CONTACT_ALREADY_EXISTS);
-        }
-        contact.update(blankToNull(request.displayName()), email, user.getUserSeq());
-
-        return ContactResponse.from(contact);
-    }
-
-    @Transactional
     public void deleteContact(String userId, Long contactId) {
         SysUser user = requireUser(userId);
         MailContact contact = contactRepository
                 .findActiveBySeqAndUser(contactId, user.getUserSeq())
                 .orElseThrow(() -> new ApiException(ErrorCode.CONTACT_NOT_FOUND));
+        if (sysUserQueryRepository.existsActiveMailIgnoreCase(contact.getEmail())) {
+            throw new ApiException(ErrorCode.FORBIDDEN, "가입된 계정 연락처는 삭제할 수 없습니다.");
+        }
         contact.softDelete(user.getUserSeq());
     }
 
     @Transactional(readOnly = true)
     public List<ContactGroupResponse> listGroups(String userId) {
         SysUser user = requireUser(userId);
+        Set<String> directoryEmails = accountEmails();
         return groupRepository.findAccessibleByUser(user.getUserSeq()).stream()
-                .map(group -> toGroupResponse(group, user.getUserSeq()))
+                .map(group -> toGroupResponse(group, user.getUserSeq(), directoryEmails))
                 .toList();
     }
 
@@ -106,17 +93,20 @@ public class ContactService {
         MailContactGroup saved =
                 groupRepository.save(MailContactGroup.create(user.getUserSeq(), request.name()));
 
-        return ContactGroupResponse.of(saved, true, ContactSharePermission.WRITE, List.of());
+        return ContactGroupResponse.of(
+                saved, true, ContactSharePermission.WRITE, user.getUserId(), null, List.of());
     }
 
     @Transactional
     public ContactGroupResponse renameGroup(String userId, Long groupId, ContactGroupRequest request) {
         SysUser user = requireUser(userId);
         MailContactGroup group = requireGroup(groupId);
-        requireWrite(group, user.getUserSeq());
+        if (!Objects.equals(group.getOwnerUserSeq(), user.getUserSeq())) {
+            throw new ApiException(ErrorCode.FORBIDDEN);
+        }
         group.rename(request.name(), user.getUserSeq());
 
-        return toGroupResponse(group, user.getUserSeq());
+        return toGroupResponse(group, user.getUserSeq(), accountEmails());
     }
 
     @Transactional
@@ -139,27 +129,30 @@ public class ContactService {
         MailContactGroup group = requireGroup(groupId);
         requireWrite(group, user.getUserSeq());
         Long ownerSeq = group.getOwnerUserSeq();
-        List<Long> ids = request.contactIds() == null ? List.of() : request.contactIds();
-        List<MailContact> contacts =
-                ids.isEmpty() ? List.of() : contactRepository.findActiveBySeqsAndUser(ids, ownerSeq);
-        if (contacts.size() != ids.stream().distinct().count()) {
-            throw new ApiException(ErrorCode.CONTACT_NOT_FOUND, "Group members must be owner's contacts");
+        List<Long> contactIds = distinct(request == null ? null : request.contactIds());
+        List<Long> accountUserSeqs = distinct(request == null ? null : request.accountUserSeqs());
+        LinkedHashSet<Long> accountSeqs = new LinkedHashSet<>(accountUserSeqs);
+        List<MailContact> ownerContacts = resolveMembersToOwner(contactIds, ownerSeq, user.getUserSeq(), accountSeqs);
+        List<SysUser> accounts = sysUserQueryRepository.findActiveByUserSeqs(accountSeqs);
+        if (accounts.size() != accountSeqs.size()) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND, "Group members must be registered accounts");
         }
         memberRepository.deleteByGroupSeq(groupId);
-        for (MailContact contact : contacts) {
-            memberRepository.save(MailContactGroupMember.of(groupId, contact.getContactSeq()));
+        for (MailContact contact : ownerContacts) {
+            memberRepository.save(MailContactGroupMember.ofContact(groupId, contact.getContactSeq()));
+        }
+        for (SysUser account : accounts) {
+            memberRepository.save(MailContactGroupMember.ofAccount(groupId, account.getUserSeq()));
         }
 
-        return toGroupResponse(group, user.getUserSeq());
+        return toGroupResponse(group, user.getUserSeq(), accountEmails());
     }
 
     @Transactional(readOnly = true)
     public List<ContactGroupShareResponse> listShares(String userId, Long groupId) {
         SysUser user = requireUser(userId);
         MailContactGroup group = requireGroup(groupId);
-        if (!Objects.equals(group.getOwnerUserSeq(), user.getUserSeq())) {
-            throw new ApiException(ErrorCode.FORBIDDEN);
-        }
+        requireAccess(group, user.getUserSeq());
 
         return shareRepository.findActiveByGroupSeq(groupId).stream()
                 .map(share -> ContactGroupShareResponse.of(
@@ -174,38 +167,38 @@ public class ContactService {
     @Transactional
     public ContactGroupShareResponse shareGroup(
             String userId, Long groupId, ContactGroupShareRequest request) {
-        SysUser owner = requireUser(userId);
+        SysUser actor = requireUser(userId);
         MailContactGroup group = requireGroup(groupId);
-        if (!Objects.equals(group.getOwnerUserSeq(), owner.getUserSeq())) {
-            throw new ApiException(ErrorCode.FORBIDDEN);
-        }
+        requireWrite(group, actor.getUserSeq());
         SysUser target = requireUser(request.sharedWithUserId());
-        if (Objects.equals(target.getUserSeq(), owner.getUserSeq())) {
+        if (Objects.equals(target.getUserSeq(), actor.getUserSeq())
+                || Objects.equals(target.getUserSeq(), group.getOwnerUserSeq())) {
             throw new ApiException(ErrorCode.INVALID_REQUEST, "Cannot share group with yourself");
         }
         MailContactGroupShare existing =
                 shareRepository.findActive(groupId, target.getUserSeq()).orElse(null);
         if (existing != null) {
-            existing.updatePermission(request.permission(), owner.getUserSeq());
+            existing.updatePermission(request.permission(), actor.getUserSeq());
             return ContactGroupShareResponse.of(existing, target.getUserId());
         }
         MailContactGroupShare saved = shareRepository.save(MailContactGroupShare.create(
-                groupId, target.getUserSeq(), request.permission(), owner.getUserSeq()));
+                groupId, target.getUserSeq(), request.permission(), actor.getUserSeq()));
 
         return ContactGroupShareResponse.of(saved, target.getUserId());
     }
 
     @Transactional
     public void revokeShare(String userId, Long groupId, Long shareId) {
-        SysUser owner = requireUser(userId);
+        SysUser actor = requireUser(userId);
         MailContactGroup group = requireGroup(groupId);
-        if (!Objects.equals(group.getOwnerUserSeq(), owner.getUserSeq())) {
-            throw new ApiException(ErrorCode.FORBIDDEN);
-        }
         MailContactGroupShare share = shareRepository
                 .findActiveBySeqAndGroup(shareId, groupId)
                 .orElseThrow(() -> new ApiException(ErrorCode.CONTACT_SHARE_NOT_FOUND));
-        share.softDelete(owner.getUserSeq());
+        boolean ownShare = Objects.equals(share.getSharedWithUserSeq(), actor.getUserSeq());
+        if (!ownShare) {
+            requireWrite(group, actor.getUserSeq());
+        }
+        share.softDelete(actor.getUserSeq());
     }
 
     @Transactional(readOnly = true)
@@ -213,11 +206,12 @@ public class ContactService {
         SysUser user = requireUser(userId);
         String query = q == null ? "" : q.trim();
         List<RecipientSuggestItem> result = new ArrayList<>();
+        List<MailContactGroup> accessible = groupRepository.findAccessibleByUser(user.getUserSeq());
 
-        List<MailContactGroup> groups = StringUtils.hasText(query)
-                ? groupRepository.searchAccessibleByUser(user.getUserSeq(), query)
-                : groupRepository.findAccessibleByUser(user.getUserSeq());
-        for (MailContactGroup group : groups) {
+        for (MailContactGroup group : accessible) {
+            if (!KoreanTextMatcher.matches(query, group.getName())) {
+                continue;
+            }
             List<String> emails = memberEmails(group.getGroupSeq());
             if (!emails.isEmpty() || StringUtils.hasText(query)) {
                 result.add(RecipientSuggestItem.group(group.getGroupSeq(), group.getName(), emails));
@@ -225,14 +219,11 @@ public class ContactService {
         }
 
         Map<String, ContactResponse> byEmail = new LinkedHashMap<>();
-        List<MailContact> own = StringUtils.hasText(query)
-                ? contactRepository.searchActiveByUserSeq(user.getUserSeq(), query)
-                : contactRepository.findActiveByUserSeq(user.getUserSeq());
-        for (MailContact contact : own) {
-            byEmail.putIfAbsent(contact.getEmail().toLowerCase(Locale.ROOT), ContactResponse.from(contact));
+        for (ContactResponse contact : collectContacts(user, query)) {
+            byEmail.put(contact.email().toLowerCase(Locale.ROOT), contact);
         }
 
-        List<Long> sharedGroupIds = groupRepository.findAccessibleByUser(user.getUserSeq()).stream()
+        List<Long> sharedGroupIds = accessible.stream()
                 .filter(g -> !Objects.equals(g.getOwnerUserSeq(), user.getUserSeq()))
                 .map(MailContactGroup::getGroupSeq)
                 .toList();
@@ -240,14 +231,8 @@ public class ContactService {
             List<Long> contactIds = memberRepository.findContactSeqsByGroupSeqs(sharedGroupIds);
             if (!contactIds.isEmpty()) {
                 for (MailContact contact : contactRepository.findActiveBySeqs(contactIds)) {
-                    if (StringUtils.hasText(query)) {
-                        String hay = ((contact.getDisplayName() == null ? "" : contact.getDisplayName())
-                                        + " "
-                                        + contact.getEmail())
-                                .toLowerCase(Locale.ROOT);
-                        if (!hay.contains(query.toLowerCase(Locale.ROOT))) {
-                            continue;
-                        }
+                    if (!KoreanTextMatcher.matches(query, contact.getDisplayName(), contact.getEmail())) {
+                        continue;
                     }
                     byEmail.putIfAbsent(
                             contact.getEmail().toLowerCase(Locale.ROOT), ContactResponse.from(contact));
@@ -256,39 +241,98 @@ public class ContactService {
         }
 
         for (ContactResponse contact : byEmail.values()) {
-            result.add(RecipientSuggestItem.contact(contact.id(), contact.displayName(), contact.email()));
+            Long suggestId = contact.fromAccount() ? contact.accountUserSeq() : contact.id();
+            result.add(RecipientSuggestItem.contact(suggestId, contact.displayName(), contact.email()));
         }
 
         return result.stream().limit(30).toList();
     }
 
-    private ContactGroupResponse toGroupResponse(MailContactGroup group, Long viewerUserSeq) {
+    private List<ContactResponse> collectContacts(SysUser user, String query) {
+        List<SysUser> accounts = sysUserQueryRepository.findAllActive();
+        Set<String> directoryEmails = accountEmails(accounts);
+        List<ContactResponse> result = new ArrayList<>();
+        for (SysUser account : accounts) {
+            if (!StringUtils.hasText(account.getMailAddress())) {
+                continue;
+            }
+            if (!KoreanTextMatcher.matches(query, account.getUserId(), account.getMailAddress())) {
+                continue;
+            }
+            result.add(ContactResponse.fromAccount(account));
+        }
+        for (MailContact contact : contactRepository.findActiveByUserSeq(user.getUserSeq())) {
+            if (directoryEmails.contains(contact.getEmail().toLowerCase(Locale.ROOT))) {
+                continue;
+            }
+            if (!KoreanTextMatcher.matches(query, contact.getDisplayName(), contact.getEmail())) {
+                continue;
+            }
+            result.add(ContactResponse.from(contact));
+        }
+
+        return result;
+    }
+
+    private ContactGroupResponse toGroupResponse(
+            MailContactGroup group, Long viewerUserSeq, Set<String> directoryEmails) {
         boolean owned = Objects.equals(group.getOwnerUserSeq(), viewerUserSeq);
+        MailContactGroupShare share = owned
+                ? null
+                : shareRepository.findActive(group.getGroupSeq(), viewerUserSeq).orElse(null);
         ContactSharePermission permission = owned
                 ? ContactSharePermission.WRITE
-                : shareRepository
-                        .findActive(group.getGroupSeq(), viewerUserSeq)
-                        .map(MailContactGroupShare::getPermission)
-                        .orElse(ContactSharePermission.READ);
+                : share != null ? share.getPermission() : ContactSharePermission.READ;
+        List<ContactResponse> members = new ArrayList<>();
+        List<Long> memberUserSeqs = memberRepository.findUserSeqsByGroupSeq(group.getGroupSeq());
+        for (SysUser account : sysUserQueryRepository.findActiveByUserSeqs(memberUserSeqs)) {
+            members.add(ContactResponse.fromAccount(account));
+        }
         List<Long> contactIds = memberRepository.findContactSeqsByGroupSeq(group.getGroupSeq());
-        List<ContactResponse> members = contactIds.isEmpty()
-                ? List.of()
-                : contactRepository.findActiveBySeqs(contactIds).stream()
-                        .map(ContactResponse::from)
-                        .toList();
+        if (!contactIds.isEmpty()) {
+            for (MailContact contact : contactRepository.findActiveBySeqs(contactIds)) {
+                if (directoryEmails.contains(contact.getEmail().toLowerCase(Locale.ROOT))) {
+                    continue;
+                }
+                members.add(ContactResponse.from(contact));
+            }
+        }
 
-        return ContactGroupResponse.of(group, owned, permission, members);
+        String ownerUserId = userIdOf(group.getOwnerUserSeq());
+        String sharedByUserId = null;
+        if (!owned) {
+            String actorId = userIdOf(share == null ? null : share.getCreatedBy());
+            sharedByUserId = StringUtils.hasText(actorId) ? actorId : ownerUserId;
+        }
+
+        return ContactGroupResponse.of(group, owned, permission, ownerUserId, sharedByUserId, members);
     }
 
     private List<String> memberEmails(Long groupSeq) {
+        Set<String> emails = new LinkedHashSet<>();
+        List<Long> memberUserSeqs = memberRepository.findUserSeqsByGroupSeq(groupSeq);
+        for (SysUser account : sysUserQueryRepository.findActiveByUserSeqs(memberUserSeqs)) {
+            if (StringUtils.hasText(account.getMailAddress())) {
+                emails.add(account.getMailAddress());
+            }
+        }
         List<Long> ids = memberRepository.findContactSeqsByGroupSeq(groupSeq);
-        if (ids.isEmpty()) {
-            return List.of();
+        if (!ids.isEmpty()) {
+            for (MailContact contact : contactRepository.findActiveBySeqs(ids)) {
+                emails.add(contact.getEmail());
+            }
         }
 
-        return contactRepository.findActiveBySeqs(ids).stream()
-                .map(MailContact::getEmail)
-                .collect(Collectors.toList());
+        return new ArrayList<>(emails);
+    }
+
+    private void requireAccess(MailContactGroup group, Long userSeq) {
+        if (Objects.equals(group.getOwnerUserSeq(), userSeq)) {
+            return;
+        }
+        if (shareRepository.findActive(group.getGroupSeq(), userSeq).isEmpty()) {
+            throw new ApiException(ErrorCode.FORBIDDEN);
+        }
     }
 
     private void requireWrite(MailContactGroup group, Long userSeq) {
@@ -310,10 +354,70 @@ public class ContactService {
                 .orElseThrow(() -> new ApiException(ErrorCode.CONTACT_GROUP_NOT_FOUND));
     }
 
+    private String userIdOf(Long userSeq) {
+        if (userSeq == null) {
+            return "";
+        }
+        return sysUserQueryRepository.findByUserSeq(userSeq).map(SysUser::getUserId).orElse("");
+    }
+
     private SysUser requireUser(String userId) {
         return sysUserQueryRepository
                 .findByUserId(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
+    }
+
+    private Set<String> accountEmails() {
+        return accountEmails(sysUserQueryRepository.findAllActive());
+    }
+
+    private static Set<String> accountEmails(List<SysUser> accounts) {
+        return accounts.stream()
+                .map(SysUser::getMailAddress)
+                .filter(StringUtils::hasText)
+                .map(email -> email.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * WRITE 공유자도 자기 연락처를 넣을 수 있다. 그룹에는 소유자 주소록 행(또는 가입 계정)으로 맞춘다.
+     */
+    private List<MailContact> resolveMembersToOwner(
+            List<Long> contactIds, Long ownerSeq, Long actorSeq, Set<Long> accountSeqs) {
+        if (contactIds.isEmpty()) {
+            return List.of();
+        }
+        List<MailContact> sources = contactRepository.findActiveBySeqs(contactIds);
+        if (sources.size() != contactIds.size()) {
+            throw new ApiException(ErrorCode.CONTACT_NOT_FOUND);
+        }
+        LinkedHashMap<String, MailContact> ownerByEmail = new LinkedHashMap<>();
+        for (MailContact source : sources) {
+            if (!Objects.equals(source.getUserSeq(), ownerSeq)
+                    && !Objects.equals(source.getUserSeq(), actorSeq)) {
+                throw new ApiException(ErrorCode.FORBIDDEN, "Group members must be owner or editor contacts");
+            }
+            SysUser account = sysUserQueryRepository.findActiveByMailIgnoreCase(source.getEmail()).orElse(null);
+            if (account != null) {
+                accountSeqs.add(account.getUserSeq());
+                continue;
+            }
+            MailContact owned = contactRepository
+                    .findActiveByUserAndEmail(ownerSeq, source.getEmail())
+                    .orElseGet(() -> contactRepository.save(
+                            MailContact.create(ownerSeq, source.getDisplayName(), source.getEmail())));
+            ownerByEmail.putIfAbsent(owned.getEmail().toLowerCase(Locale.ROOT), owned);
+        }
+
+        return new ArrayList<>(ownerByEmail.values());
+    }
+
+    private static List<Long> distinct(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+
+        return ids.stream().filter(Objects::nonNull).distinct().toList();
     }
 
     private static String blankToNull(String value) {

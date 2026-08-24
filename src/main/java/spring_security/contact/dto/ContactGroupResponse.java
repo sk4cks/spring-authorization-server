@@ -10,14 +10,24 @@ public record ContactGroupResponse(
         String name,
         boolean owned,
         ContactSharePermission permission,
+        String ownerUserId,
+        String sharedByUserId,
         List<ContactResponse> members) {
 
     public static ContactGroupResponse of(
             MailContactGroup group,
             boolean owned,
             ContactSharePermission permission,
+            String ownerUserId,
+            String sharedByUserId,
             List<ContactResponse> members) {
         return new ContactGroupResponse(
-                group.getGroupSeq(), group.getName(), owned, permission, members);
+                group.getGroupSeq(),
+                group.getName(),
+                owned,
+                permission,
+                ownerUserId,
+                sharedByUserId,
+                members);
     }
 }

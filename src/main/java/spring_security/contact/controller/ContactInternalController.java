@@ -43,14 +43,6 @@ public class ContactInternalController {
         return contactService.createContact(userId, request);
     }
 
-    @PutMapping("/contacts/{contactId}")
-    public ContactResponse updateContact(
-            @PathVariable String userId,
-            @PathVariable Long contactId,
-            @Valid @RequestBody ContactRequest request) {
-        return contactService.updateContact(userId, contactId, request);
-    }
-
     @DeleteMapping("/contacts/{contactId}")
     public ResponseEntity<Void> deleteContact(@PathVariable String userId, @PathVariable Long contactId) {
         contactService.deleteContact(userId, contactId);

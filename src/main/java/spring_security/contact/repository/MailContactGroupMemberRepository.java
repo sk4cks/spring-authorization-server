@@ -8,21 +8,27 @@ import spring_security.contact.domain.MailContactGroupMember;
 
 import java.util.List;
 
-public interface MailContactGroupMemberRepository
-        extends JpaRepository<MailContactGroupMember, MailContactGroupMember.Pk> {
+public interface MailContactGroupMemberRepository extends JpaRepository<MailContactGroupMember, Long> {
 
-    List<MailContactGroupMember> findByGroupSeq(Long groupSeq);
-
-    @Query("select m.contactSeq from MailContactGroupMember m where m.groupSeq = :groupSeq")
+    @Query("""
+            select m.contactSeq from MailContactGroupMember m
+            where m.groupSeq = :groupSeq and m.contactSeq is not null
+            """)
     List<Long> findContactSeqsByGroupSeq(@Param("groupSeq") Long groupSeq);
+
+    @Query("""
+            select m.contactSeq from MailContactGroupMember m
+            where m.groupSeq in :groupSeqs and m.contactSeq is not null
+            """)
+    List<Long> findContactSeqsByGroupSeqs(@Param("groupSeqs") List<Long> groupSeqs);
+
+    @Query("""
+            select m.memberUserSeq from MailContactGroupMember m
+            where m.groupSeq = :groupSeq and m.memberUserSeq is not null
+            """)
+    List<Long> findUserSeqsByGroupSeq(@Param("groupSeq") Long groupSeq);
 
     @Modifying(clearAutomatically = true)
     @Query("delete from MailContactGroupMember m where m.groupSeq = :groupSeq")
     void deleteByGroupSeq(@Param("groupSeq") Long groupSeq);
-
-    @Query("""
-            select m.contactSeq from MailContactGroupMember m
-            where m.groupSeq in :groupSeqs
-            """)
-    List<Long> findContactSeqsByGroupSeqs(@Param("groupSeqs") List<Long> groupSeqs);
 }

@@ -67,12 +67,6 @@ public class MailContact {
         return contact;
     }
 
-    public void update(String displayName, String email, Long actorUserSeq) {
-        this.displayName = displayName;
-        this.email = email.trim();
-        this.updatedBy = actorUserSeq;
-    }
-
     public void softDelete(Long actorUserSeq) {
         if (DelYn.isDeleted(delYn)) {
             return;
