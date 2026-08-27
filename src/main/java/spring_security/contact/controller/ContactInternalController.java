@@ -3,11 +3,9 @@ package spring_security.contact.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -43,7 +41,7 @@ public class ContactInternalController {
         return contactService.createContact(userId, request);
     }
 
-    @DeleteMapping("/contacts/{contactId}")
+    @PostMapping("/contacts/{contactId}/delete")
     public ResponseEntity<Void> deleteContact(@PathVariable String userId, @PathVariable Long contactId) {
         contactService.deleteContact(userId, contactId);
 
@@ -67,7 +65,7 @@ public class ContactInternalController {
         return contactService.createGroup(userId, request);
     }
 
-    @PutMapping("/contact-groups/{groupId}")
+    @PostMapping("/contact-groups/{groupId}/update")
     public ContactGroupResponse renameGroup(
             @PathVariable String userId,
             @PathVariable Long groupId,
@@ -75,14 +73,14 @@ public class ContactInternalController {
         return contactService.renameGroup(userId, groupId, request);
     }
 
-    @DeleteMapping("/contact-groups/{groupId}")
+    @PostMapping("/contact-groups/{groupId}/delete")
     public ResponseEntity<Void> deleteGroup(@PathVariable String userId, @PathVariable Long groupId) {
         contactService.deleteGroup(userId, groupId);
 
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/contact-groups/{groupId}/members")
+    @PostMapping("/contact-groups/{groupId}/members")
     public ContactGroupResponse replaceMembers(
             @PathVariable String userId,
             @PathVariable Long groupId,
@@ -104,7 +102,7 @@ public class ContactInternalController {
         return contactService.shareGroup(userId, groupId, request);
     }
 
-    @DeleteMapping("/contact-groups/{groupId}/shares/{shareId}")
+    @PostMapping("/contact-groups/{groupId}/shares/{shareId}/delete")
     public ResponseEntity<Void> revokeShare(
             @PathVariable String userId, @PathVariable Long groupId, @PathVariable Long shareId) {
         contactService.revokeShare(userId, groupId, shareId);
