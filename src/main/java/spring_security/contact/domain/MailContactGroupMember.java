@@ -14,6 +14,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * 그룹 멤버 한 줄 (MAIL_CONTACT_GROUP_MEMBER).
+ * {@code contactSeq}(주소록 행)와 {@code memberUserSeq}(가입 계정) 중 하나만 채운다.
+ * 삭제 컬럼이 없어서 멤버 교체 시 그룹 단위로 DELETE 후 다시 INSERT한다.
+ */
 @Entity
 @Table(name = "MAIL_CONTACT_GROUP_MEMBER", schema = "note")
 @Getter
@@ -33,26 +38,32 @@ public class MailContactGroupMember {
     @Column(name = "GROUP_SEQ", nullable = false)
     private Long groupSeq;
 
+    /** MAIL_CONTACT PK. 계정 멤버면 null. */
     @Column(name = "CONTACT_SEQ")
     private Long contactSeq;
 
+    /** SYS_USER PK. 주소록 멤버면 null. */
     @Column(name = "MEMBER_USER_SEQ")
     private Long memberUserSeq;
 
     @Column(name = "CREATED_AT", nullable = false)
     private LocalDateTime createdAt;
 
+    /** 소유자 주소록 행을 멤버로 넣는다. */
     public static MailContactGroupMember ofContact(Long groupSeq, Long contactSeq) {
         MailContactGroupMember member = new MailContactGroupMember();
         member.groupSeq = groupSeq;
         member.contactSeq = contactSeq;
+
         return member;
     }
 
+    /** 가입 계정을 멤버로 넣는다. */
     public static MailContactGroupMember ofAccount(Long groupSeq, Long memberUserSeq) {
         MailContactGroupMember member = new MailContactGroupMember();
         member.groupSeq = groupSeq;
         member.memberUserSeq = memberUserSeq;
+
         return member;
     }
 
