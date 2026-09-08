@@ -15,6 +15,9 @@ import spring_security.user.dto.UserIdAvailabilityResponse;
 import spring_security.user.dto.UserResponse;
 import spring_security.user.service.UserRegisterService;
 
+/**
+ * 로컬 회원가입. permitAll. 내부 API key는 필요 없다.
+ */
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class UserRegisterController {
 
     @GetMapping("/check-userid")
     public ResponseEntity<UserIdAvailabilityResponse> checkUserId(@RequestParam String userId) {
+        // userId + userId@domain 중복. available=true 이면 가입 가능.
         return ResponseEntity.ok(userRegisterService.checkUserId(userId));
     }
 
@@ -31,6 +35,7 @@ public class UserRegisterController {
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse response = userRegisterService.register(request);
 
+        // SYS_USER INSERT + Mailcow 메일함 생성 후 201.
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

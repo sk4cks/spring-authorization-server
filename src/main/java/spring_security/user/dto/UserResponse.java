@@ -12,6 +12,7 @@ public record UserResponse(
         UserStatus status) {
 
     public static UserResponse from(SysUser user) {
+        // passwordHash·메일함 암호는 넣지 않는다.
         return new UserResponse(
                 user.getUserSeq(),
                 user.getUserId(),

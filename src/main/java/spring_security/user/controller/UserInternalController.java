@@ -12,6 +12,9 @@ import spring_security.user.dto.UserResponse;
 import spring_security.user.service.UserMailboxService;
 import spring_security.user.service.UserService;
 
+/**
+ * BFF 전용 유저 조회·메일함·탈퇴. {@code X-Internal-Api-Key} 필요.
+ */
 @RestController
 @RequestMapping("/auth/users")
 @RequiredArgsConstructor
@@ -37,6 +40,7 @@ public class UserInternalController {
     public ResponseEntity<Void> withdraw(@PathVariable String userId) {
         userService.withdraw(userId);
 
+        // 본문 없이 204.
         return ResponseEntity.noContent().build();
     }
 }

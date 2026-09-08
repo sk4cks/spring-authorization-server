@@ -12,6 +12,7 @@ public final class DelYn {
     private DelYn() {}
 
     public static boolean isDeleted(String delYn) {
+        // null은 삭제 아님. 엔티티 PrePersist 전에만 올 수 있다.
         return Y.equals(delYn);
     }
 }

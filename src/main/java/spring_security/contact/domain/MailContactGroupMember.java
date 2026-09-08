@@ -53,6 +53,8 @@ public class MailContactGroupMember {
     public static MailContactGroupMember ofContact(Long groupSeq, Long contactSeq) {
         MailContactGroupMember member = new MailContactGroupMember();
         member.groupSeq = groupSeq;
+
+        // memberUserSeq는 비운다. 둘 다 채우지 않는다.
         member.contactSeq = contactSeq;
 
         return member;

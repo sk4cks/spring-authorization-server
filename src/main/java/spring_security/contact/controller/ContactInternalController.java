@@ -36,6 +36,7 @@ public class ContactInternalController {
     @GetMapping("/contacts")
     public List<ContactDto.Response> listContacts(
             @PathVariable String userId, @RequestParam(required = false) String q) {
+        // SYS_USER 디렉터리 + 내 MAIL_CONTACT. q는 한글 자모 필터.
         return contactService.listContacts(userId, q);
     }
 
@@ -45,6 +46,7 @@ public class ContactInternalController {
     @PostMapping("/contacts")
     public ContactDto.Response createContact(
             @PathVariable String userId, @Valid @RequestBody ContactDto.Request request) {
+        // 중복 이메일이면 409. 성공이면 만든 행.
         return contactService.createContact(userId, request);
     }
 
@@ -55,6 +57,7 @@ public class ContactInternalController {
     public ResponseEntity<Void> deleteContact(@PathVariable String userId, @PathVariable Long contactId) {
         contactService.deleteContact(userId, contactId);
 
+        // 본문 없이 204.
         return ResponseEntity.noContent().build();
     }
 
@@ -65,6 +68,7 @@ public class ContactInternalController {
     @GetMapping("/contacts/suggest")
     public List<RecipientSuggestItem> suggest(
             @PathVariable String userId, @RequestParam(required = false) String q) {
+        // type=group|contact 최대 30. BFF가 메일 히스토리를 뒤에 붙인다.
         return contactService.suggest(userId, q);
     }
 
@@ -74,6 +78,7 @@ public class ContactInternalController {
      */
     @GetMapping("/contact-groups")
     public List<ContactGroupDto.Response> listGroups(@PathVariable String userId) {
+        // 소유 + 공유받은 그룹. 멤버·권한을 붙여 반환.
         return contactService.listGroups(userId);
     }
 
@@ -83,6 +88,7 @@ public class ContactInternalController {
     @PostMapping("/contact-groups")
     public ContactGroupDto.Response createGroup(
             @PathVariable String userId, @Valid @RequestBody ContactGroupDto.Request request) {
+        // 빈 그룹. 호출자가 소유자, permission=WRITE.
         return contactService.createGroup(userId, request);
     }
 
@@ -94,6 +100,7 @@ public class ContactInternalController {
             @PathVariable String userId,
             @PathVariable Long groupId,
             @Valid @RequestBody ContactGroupDto.Request request) {
+        // 소유자만. 공유 WRITE라도 이름은 못 바꾼다.
         return contactService.renameGroup(userId, groupId, request);
     }
 
@@ -104,6 +111,7 @@ public class ContactInternalController {
     public ResponseEntity<Void> deleteGroup(@PathVariable String userId, @PathVariable Long groupId) {
         contactService.deleteGroup(userId, groupId);
 
+        // 본문 없이 204.
         return ResponseEntity.noContent().build();
     }
 
@@ -116,6 +124,7 @@ public class ContactInternalController {
             @PathVariable String userId,
             @PathVariable Long groupId,
             @Valid @RequestBody ContactGroupDto.MembersRequest request) {
+        // 부분 수정이 아니라 body 그대로 교체.
         return contactService.replaceMembers(userId, groupId, request);
     }
 
@@ -126,6 +135,7 @@ public class ContactInternalController {
     @GetMapping("/contact-groups/{groupId}/shares")
     public List<ContactShareDto.Response> listShares(
             @PathVariable String userId, @PathVariable Long groupId) {
+        // 소유자 또는 공유받은 사람만.
         return contactService.listShares(userId, groupId);
     }
 
@@ -138,6 +148,7 @@ public class ContactInternalController {
             @PathVariable String userId,
             @PathVariable Long groupId,
             @Valid @RequestBody ContactShareDto.Request request) {
+        // 이미 공유 중이면 권한만 갱신.
         return contactService.shareGroup(userId, groupId, request);
     }
 
@@ -149,6 +160,7 @@ public class ContactInternalController {
             @PathVariable String userId, @PathVariable Long groupId, @PathVariable Long shareId) {
         contactService.revokeShare(userId, groupId, shareId);
 
+        // 본문 없이 204.
         return ResponseEntity.noContent().build();
     }
 }

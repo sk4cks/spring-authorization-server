@@ -6,7 +6,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
@@ -17,6 +16,10 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
 import org.springframework.util.StringUtils;
 import spring_security.auth.oauth.OAuthLoginAttributes;
 
+/**
+ * /oauth2/authorize, /oauth2/token, OIDC용 필터 체인.
+ * 아이디/비밀번호 로그인은 {@link DefaultSecurityConfig}.
+ */
 @Configuration
 public class AuthorizationServerConfig {
 
@@ -44,16 +47,19 @@ public class AuthorizationServerConfig {
             if (!StringUtils.hasText(name)) {
                 name = context.getPrincipal().getName();
             }
+
             context.getClaims().subject(name);
             context.getClaims().claim("preferred_username", name);
 
             OAuth2Authorization authorization = context.getAuthorization();
             if (authorization != null) {
+                // SNS 로그인 때 저장해 둔 provider/externalId가 있으면 JWT에 넣는다.
                 String snsProvider = authorization.getAttribute(OAuthLoginAttributes.SNS_PROVIDER);
                 String snsExternalId = authorization.getAttribute(OAuthLoginAttributes.SNS_EXTERNAL_ID);
                 if (StringUtils.hasText(snsProvider) && StringUtils.hasText(snsExternalId)) {
                     context.getClaims().claim("sns_provider", snsProvider);
                     context.getClaims().claim("sns_external_id", snsExternalId);
+
                     String snsEmail = authorization.getAttribute(OAuthLoginAttributes.SNS_EXTERNAL_EMAIL);
                     if (StringUtils.hasText(snsEmail)) {
                         context.getClaims().claim("sns_external_email", snsEmail);

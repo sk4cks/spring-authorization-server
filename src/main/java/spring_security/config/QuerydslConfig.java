@@ -14,6 +14,7 @@ public class QuerydslConfig {
 
     @Bean
     public JPAQueryFactory jpaQueryFactory() {
+        // ContactQueryRepository / SysUserQueryRepository가 이 팩토리로 조회한다.
         return new JPAQueryFactory(entityManager);
     }
 }

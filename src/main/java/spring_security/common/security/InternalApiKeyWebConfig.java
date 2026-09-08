@@ -17,6 +17,7 @@ public class InternalApiKeyWebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 유저/주소록/SNS 가입/Gmail 토큰만 막는다. 로컬 로그인·회원가입은 제외.
         registry.addInterceptor(internalApiKeyInterceptor)
                 .addPathPatterns(
                         "/auth/users/**",

@@ -14,6 +14,10 @@ import spring_security.common.exception.ErrorCode;
 
 import java.time.Instant;
 
+/**
+ * Google oauth2Login 때 저장한 Gmail access token.
+ * BFF가 Gmail API를 부를 때 내부 API로 꺼내 간다.
+ */
 @Service
 @RequiredArgsConstructor
 public class GoogleGmailTokenService {
@@ -32,12 +36,15 @@ public class GoogleGmailTokenService {
     }
 
     public String getValidAccessToken(String principalName) {
+        // oauth2Login 성공 시 InMemoryOAuth2AuthorizedClientService에 저장된 클라이언트.
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
                 GOOGLE_REGISTRATION_ID, principalName);
+
         if (client == null) {
             throw new ApiException(ErrorCode.GOOGLE_GMAIL_NOT_LINKED);
         }
 
+        // 만료 임박이면 refresh_token grant로 새 access를 받는다.
         if (isExpiredSoon(client)) {
             OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest
                     .withClientRegistrationId(GOOGLE_REGISTRATION_ID)
@@ -45,6 +52,7 @@ public class GoogleGmailTokenService {
                     .build();
 
             client = authorizedClientManager.authorize(authorizeRequest);
+
             if (client == null || client.getAccessToken() == null) {
                 throw new ApiException(ErrorCode.GOOGLE_GMAIL_NOT_LINKED);
             }
@@ -56,10 +64,12 @@ public class GoogleGmailTokenService {
     private static boolean isExpiredSoon(OAuth2AuthorizedClient client) {
         Instant expiresAt = client.getAccessToken().getExpiresAt();
 
+        // expiresAt이 없으면 만료 여부를 모르니 그대로 쓴다. 60초 여유를 둔다.
         return expiresAt != null && expiresAt.isBefore(Instant.now().plusSeconds(60));
     }
 
     private static Authentication authentication(String principalName) {
+        // AuthorizedClientManager가 principal name으로 저장된 클라이언트를 찾는다.
         return new UsernamePasswordAuthenticationToken(principalName, "N/A");
     }
 }

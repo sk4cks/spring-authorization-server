@@ -37,13 +37,16 @@ public final class ContactDto {
             Long id, Long accountUserSeq, String displayName, String email, boolean fromAccount) {
 
         /** 수동 주소록 행 → 응답. */
+        /** 수동 주소록 행 → 응답. */
         public static Response from(MailContact contact) {
+            // fromAccount=false, accountUserSeq는 비운다.
             return new Response(
                     contact.getContactSeq(), null, contact.getDisplayName(), contact.getEmail(), false);
         }
 
         /** 가입 계정 → 응답. id 대신 accountUserSeq를 채운다. */
         public static Response fromAccount(SysUser user) {
+            // 표시명은 로그인 id. 메일함 주소가 email.
             return new Response(null, user.getUserSeq(), user.getUserId(), user.getMailAddress(), true);
         }
     }

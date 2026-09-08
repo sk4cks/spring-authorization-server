@@ -21,6 +21,7 @@ public class ContactRepository {
 
     /** 새 엔티티 INSERT. PK는 DB 시퀀스가 persist 시점에 채워진다. */
     public <T> T save(T entity) {
+        // merge가 아니라 persist. 호출부는 항상 새 엔티티다.
         entityManager.persist(entity);
 
         return entity;
@@ -31,6 +32,7 @@ public class ContactRepository {
      * bulk라 영속성 컨텍스트와 어긋날 수 있어 flush 후 clear한다. 멤버 전체 교체 전에 호출한다.
      */
     public void deleteByGroupSeq(Long groupSeq) {
+        // 앞에서 persist한 소유자 연락처 복사가 DB에 반영되게 먼저 flush.
         entityManager.flush();
 
         queryFactory
@@ -38,6 +40,7 @@ public class ContactRepository {
                 .where(mailContactGroupMember.groupSeq.eq(groupSeq))
                 .execute();
 
+        // bulk delete 뒤 캐시된 멤버 엔티티가 남지 않게 비운다.
         entityManager.clear();
     }
 }

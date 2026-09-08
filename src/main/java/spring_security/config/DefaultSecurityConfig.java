@@ -23,6 +23,10 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import spring_security.auth.service.CustomUserDetailsService;
 import spring_security.auth.oauth.OAuthLoginSuccessHandler;
 
+/**
+ * 앱 기본 SecurityFilterChain (Order 2).
+ * SAS 체인(Order HIGHEST)이 /oauth2/** 를 먼저 가져가고, 나머지는 여기다.
+ */
 @EnableWebSecurity
 @Configuration
 @RequiredArgsConstructor
@@ -37,6 +41,8 @@ public class DefaultSecurityConfig {
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+
+        // 로컬 로그인만. SNS 계정은 passwordHash가 없어서 여기로 안 탄다.
         provider.setUserDetailsService(customUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
 
@@ -48,19 +54,25 @@ public class DefaultSecurityConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
+                // SNS prepare가 세션에 PKCE를 넣으므로 STATELESS가 아니다.
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(request -> request
+                        // /auth/login, /auth/register, SNS prepare, oauth2 시작은 공개.
                         .requestMatchers("/login", "/auth/**", "/oauth2/**", "/error").permitAll()
                         .anyRequest().authenticated())
+                // BFF가 JSON POST 하므로 로그인 CSRF는 끈다. form login 페이지는 기본 CSRF.
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/**"))
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint
+                                // Google이면 access_type=offline 을 붙이는 resolver.
                                 .authorizationRequestResolver(authorizationRequestResolver))
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(oauth2UserService)
                                 .oidcUserService(oidcUserService))
+                        // SPA PKCE 세션이 있으면 /oauth/callback 으로 code를 넘긴다.
                         .successHandler(oauthLoginSuccessHandler))
+                // SNS authorize 미인증 시 LoginUrlAuthenticationEntryPoint("/login")이 이 form을 쓴다.
                 .formLogin(Customizer.withDefaults());
 
         return http.build();
@@ -74,6 +86,7 @@ public class DefaultSecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        // AuthService.login이 이 매니저로 UsernamePasswordAuthenticationToken을 검증한다.
         return config.getAuthenticationManager();
     }
 }

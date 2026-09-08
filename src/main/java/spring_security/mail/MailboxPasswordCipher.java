@@ -21,14 +21,18 @@ public class MailboxPasswordCipher {
         if (!StringUtils.hasText(secret) || !StringUtils.hasText(saltHex)) {
             throw new IllegalStateException("app.mail.mailbox-secret and mailbox-salt are required");
         }
+
+        // salt는 hex 문자열이어야 한다. 기동 시 한 번만 만든다.
         this.encryptor = Encryptors.text(secret, saltHex);
     }
 
     public String encrypt(String plainPassword) {
+        // SYS_USER.MAILBOX_PASSWORD_ENC에 넣을 암호문.
         return encryptor.encrypt(plainPassword);
     }
 
     public String decrypt(String encryptedPassword) {
+        // BFF IMAP LOGIN에 넘길 평문. 내부 API에서만 호출한다.
         return encryptor.decrypt(encryptedPassword);
     }
 }

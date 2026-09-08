@@ -31,14 +31,17 @@ public class ContactQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
+    /** MAIL_CONTACT 활성 행. */
     private static BooleanExpression contactAlive() {
         return mailContact.delYn.eq(DelYn.N);
     }
 
+    /** MAIL_CONTACT_GROUP 활성 행. */
     private static BooleanExpression groupAlive() {
         return mailContactGroup.delYn.eq(DelYn.N);
     }
 
+    /** MAIL_CONTACT_GROUP_SHARE 활성 행. */
     private static BooleanExpression shareAlive() {
         return mailContactGroupShare.delYn.eq(DelYn.N);
     }
@@ -47,7 +50,11 @@ public class ContactQueryRepository {
     public List<MailContact> findActiveByUserSeq(Long userSeq) {
         return queryFactory
                 .selectFrom(mailContact)
+
+                // 내 주소록 + 삭제되지 않은 행.
                 .where(mailContact.userSeq.eq(userSeq), contactAlive())
+
+                // 표시명이 없으면 이메일로 정렬한다.
                 .orderBy(mailContact.displayName.coalesce(mailContact.email).lower().asc())
                 .fetch();
     }
@@ -58,6 +65,8 @@ public class ContactQueryRepository {
                 .selectFrom(mailContact)
                 .where(
                         mailContact.contactSeq.eq(contactSeq),
+
+                        // 남의 행은 안 준다. 삭제 행도 제외.
                         mailContact.userSeq.eq(userSeq),
                         contactAlive())
                 .fetchOne();
@@ -71,6 +80,7 @@ public class ContactQueryRepository {
             return false;
         }
 
+        // selectOne + fetchFirst: 한 건만 보면 되므로 count는 안 쓴다.
         Integer found = queryFactory
                 .selectOne()
                 .from(mailContact)
@@ -89,6 +99,7 @@ public class ContactQueryRepository {
             return Optional.empty();
         }
 
+        // 대소문자 무시. 그룹 멤버를 소유자 행으로 맞출 때 쓴다.
         MailContact result = queryFactory
                 .selectFrom(mailContact)
                 .where(
@@ -102,6 +113,7 @@ public class ContactQueryRepository {
 
     /** contactSeq 목록으로 활성 연락처. 그룹 멤버 펼칠 때. */
     public List<MailContact> findActiveBySeqs(Collection<Long> ids) {
+        // Hibernate in () 빈 리스트 방지.
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
@@ -131,7 +143,11 @@ public class ContactQueryRepository {
                 .selectFrom(mailContactGroup)
                 .where(
                         groupAlive(),
+
+                        // 내가 만든 그룹이거나,
                         mailContactGroup.ownerUserSeq.eq(userSeq)
+
+                                // 나한테 활성 공유된 그룹.
                                 .or(mailContactGroup.groupSeq.in(
                                         JPAExpressions.select(mailContactGroupShare.groupSeq)
                                                 .from(mailContactGroupShare)
@@ -149,6 +165,8 @@ public class ContactQueryRepository {
                 .from(mailContactGroupMember)
                 .where(
                         mailContactGroupMember.groupSeq.eq(groupSeq),
+
+                        // 계정 멤버 행은 contactSeq가 null이라 뺀다.
                         mailContactGroupMember.contactSeq.isNotNull())
                 .fetch();
     }

@@ -97,6 +97,7 @@ public class SysUser {
     }
 
     public static SysUser createLocal(String userId, String mailAddress, String passwordHash) {
+        // SNS 필드는 비우고, passwordHash는 {bcrypt}...
         return new SysUser(userId, mailAddress, passwordHash, AuthProvider.LOCAL, null, null);
     }
 
@@ -106,6 +107,7 @@ public class SysUser {
             AuthProvider authProvider,
             String externalId,
             String externalEmail) {
+        // 앱 비밀번호는 없다. 메일함 비번은 가입 후 랜덤으로 넣는다.
         return new SysUser(userId, mailAddress, null, authProvider, externalId, externalEmail);
     }
 
@@ -120,9 +122,11 @@ public class SysUser {
 
     /** 탈퇴(soft delete) — DEL_YN=Y, STATUS=INACTIVE */
     public void softDelete(Long actorUserSeq) {
+        // 이미 탈퇴면 재호출해도 상태를 덮지 않는다.
         if (DelYn.isDeleted(delYn)) {
             return;
         }
+
         this.delYn = DelYn.Y;
         this.deletedAt = LocalDateTime.now();
         this.status = UserStatus.INACTIVE;
@@ -137,13 +141,16 @@ public class SysUser {
         if (delYn == null) {
             delYn = DelYn.N;
         }
+
         // SEQUENCE 전략: persist 시 INSERT 전에 USER_SEQ 가 할당됨 → 한 번 INSERT 로 감사 컬럼까지 기록
         if (userSeq == null) {
             throw new IllegalStateException("USER_SEQ must be assigned before insert");
         }
+
         if (createdBy == null) {
             createdBy = userSeq;
         }
+
         if (updatedBy == null) {
             updatedBy = userSeq;
         }

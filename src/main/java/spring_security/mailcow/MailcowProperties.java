@@ -16,12 +16,15 @@ public record MailcowProperties(
         if (imapHost == null || imapHost.isBlank()) {
             imapHost = "127.0.0.1";
         }
+
         if (imapPort == 0) {
             imapPort = 993;
         }
+
         if (smtpHost == null || smtpHost.isBlank()) {
             smtpHost = "127.0.0.1";
         }
+
         if (smtpPort == 0) {
             smtpPort = 587;
         }

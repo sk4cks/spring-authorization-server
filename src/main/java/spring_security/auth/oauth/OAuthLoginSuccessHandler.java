@@ -65,6 +65,7 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
             HttpServletRequest request, HttpServletResponse response, Authentication authentication)
             throws IOException, ServletException {
 
+        // prepare가 세션을 만들었을 때만 false. 없으면 일반 form/oauth 성공으로 보낸다.
         HttpSession session = request.getSession(false);
         if (session == null) {
             savedRequestHandler.onAuthenticationSuccess(request, response, authentication);
@@ -72,16 +73,19 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
+        // SPA가 /auth/social/prepare 때 넣어 둔 PKCE 값.
         String state = (String) session.getAttribute(OAuthLoginAttributes.STATE);
         String codeChallenge = (String) session.getAttribute(OAuthLoginAttributes.CODE_CHALLENGE);
         String redirectUri = (String) session.getAttribute(OAuthLoginAttributes.REDIRECT_URI);
 
+        // 세션은 있는데 PKCE가 없으면 브라우저 직접 oauth2Login이다.
         if (!StringUtils.hasText(state) || !StringUtils.hasText(codeChallenge) || !StringUtils.hasText(redirectUri)) {
             savedRequestHandler.onAuthenticationSuccess(request, response, authentication);
 
             return;
         }
 
+        // 재사용 방지. code는 아래 authorization에만 남긴다.
         session.removeAttribute(OAuthLoginAttributes.STATE);
         session.removeAttribute(OAuthLoginAttributes.CODE_CHALLENGE);
         session.removeAttribute(OAuthLoginAttributes.REDIRECT_URI);
@@ -93,12 +97,17 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
+        // JWT sub 후보. 카카오는 숫자 id 대신 nickname/email을 쓴다.
         String principalName = resolvePrincipalName(authentication);
+
         // SYS_USER 매칭용 — JWT sub(principalName)와 별도로 provider+externalId 보존
         SnsIdentity snsIdentity = resolveSnsIdentity(authentication);
+
+        // SPA가 /oauth2/token에 넘길 authorization_code. 5분 TTL.
         String code = UUID.randomUUID().toString();
         Instant now = Instant.now();
 
+        // SAS token endpoint가 PKCE 검증할 때 이 request의 code_challenge를 본다.
         OAuth2AuthorizationRequest authorizationRequest = OAuth2AuthorizationRequest.authorizationCode()
                 .clientId(client.getClientId())
                 .authorizationUri("social-login")
@@ -151,18 +160,24 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
      */
     private String resolvePrincipalName(Authentication authentication) {
         Object principal = authentication.getPrincipal();
+
+        // Google OIDC는 email이 안정적이다.
         if (principal instanceof OidcUser oidcUser && StringUtils.hasText(oidcUser.getEmail())) {
             return oidcUser.getEmail();
         }
+
         if (principal instanceof OAuth2User oauth2User) {
             String provider = oauth2User.getAttribute("provider") instanceof String p ? p : "";
 
+            // 네이버는 flatten 후 email이 있으면 그걸 sub로 쓴다.
             if ("naver".equals(provider)) {
                 String email = asNonBlankString(oauth2User.getAttribute("email"));
                 if (email != null) {
                     return email;
                 }
             }
+
+            // 카카오는 이메일이 없을 수 있어서 nickname을 우선한다.
             if ("kakao".equals(provider)) {
                 String nickname = asNonBlankString(oauth2User.getAttribute("nickname"));
                 if (nickname != null) {
@@ -174,6 +189,8 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
             if (email != null) {
                 return email;
             }
+
+            // 이메일도 없으면 provider:id. 온보딩 화면 표시용일 뿐 SYS_USER.USER_ID는 아니다.
             Object id = oauth2User.getAttribute("id");
             if (id != null && StringUtils.hasText(provider)) {
                 return provider + ":" + id;
@@ -196,27 +213,34 @@ public class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
      * registrationId(google/kakao/naver)와 provider API 의 id/sub 를 사용한다.
      */
     private SnsIdentity resolveSnsIdentity(Authentication authentication) {
+        // oauth2Login 성공이면 이 타입이다. form login이면 SNS 신원이 없다.
         if (!(authentication instanceof OAuth2AuthenticationToken oauth2Token)) {
             return null;
         }
+
         String registrationId = oauth2Token.getAuthorizedClientRegistrationId();
         if (!StringUtils.hasText(registrationId)) {
             return null;
         }
+
+        // SYS_USER.AUTH_PROVIDER enum과 맞추려고 대문자.
         String provider = registrationId.toUpperCase();
         Object principal = authentication.getPrincipal();
 
         if (principal instanceof OidcUser oidcUser) {
+            // Google sub는 계정에 고정된 외부 id.
             String externalId = oidcUser.getSubject();
             String email = asNonBlankString(oidcUser.getEmail());
 
             return new SnsIdentity(provider, externalId, email);
         }
+
         if (principal instanceof OAuth2User oauth2User) {
             Object id = oauth2User.getAttribute("id");
             if (id == null) {
                 return null;
             }
+
             String externalEmail = asNonBlankString(oauth2User.getAttribute("email"));
 
             return new SnsIdentity(provider, id.toString(), externalEmail);

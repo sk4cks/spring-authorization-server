@@ -26,6 +26,8 @@ public class MailcowConfig {
     @Bean(name = "mailcowRestTemplate")
     RestTemplate mailcowRestTemplate(RestTemplateBuilder builder) throws Exception {
         SSLContext sslContext = SSLContext.getInstance("TLS");
+
+        // Mailcow 컨테이너 self-signed만 통과. HttpsURLConnection마다 이 팩토리를 붙인다.
         sslContext.init(null, trustAllManagers(), new SecureRandom());
 
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory() {
@@ -35,6 +37,7 @@ public class MailcowConfig {
                     https.setSSLSocketFactory(sslContext.getSocketFactory());
                     https.setHostnameVerifier((hostname, session) -> true);
                 }
+
                 super.prepareConnection(connection, httpMethod);
             }
         };

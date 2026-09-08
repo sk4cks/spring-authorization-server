@@ -49,11 +49,13 @@ public class MailcowClient {
      * @param password   메일함 로그인 비밀번호 (IMAP/SMTP)
      */
     public void createMailbox(String localPart, String domain, String displayName, String password) {
+        // 로컬 개발에서 Mailcow가 없으면 가입만 통과시킨다.
         if (!properties.enabled()) {
             log.debug("Mailcow disabled — skip mailbox create for {}@{}", localPart, domain);
 
             return;
         }
+
         if (!StringUtils.hasText(properties.apiKey()) || !StringUtils.hasText(properties.baseUrl())) {
             throw new ApiException(ErrorCode.MAILCOW_ERROR, "Mailcow API is enabled but base-url/api-key missing");
         }
@@ -68,6 +70,8 @@ public class MailcowClient {
         body.put("domain", domain);
         body.put("name", StringUtils.hasText(displayName) ? displayName : localPart);
         body.put("password", password);
+
+        // Mailcow는 확인용 password2를 요구한다. 같은 값을 넣는다.
         body.put("password2", password);
         body.put("quota", "1024");
         body.put("active", "1");
@@ -79,10 +83,13 @@ public class MailcowClient {
             ResponseEntity<String> response = mailcowRestTemplate.postForEntity(
                     url, new HttpEntity<>(body, headers), String.class);
             String responseBody = response.getBody() != null ? response.getBody() : "";
+
+            // HTTP 2xx여도 JSON type=error 이면 메일함이 안 만들어진 것이다.
             if (!response.getStatusCode().is2xxSuccessful() || responseBody.contains("\"type\":\"error\"")) {
                 log.error("Mailcow create mailbox failed: status={} body={}", response.getStatusCode(), responseBody);
                 throw new ApiException(ErrorCode.MAILCOW_ERROR, "Failed to create mailbox: " + localPart + "@" + domain);
             }
+
             log.info("Mailcow mailbox created: {}@{}", localPart, domain);
 
         } catch (RestClientException ex) {

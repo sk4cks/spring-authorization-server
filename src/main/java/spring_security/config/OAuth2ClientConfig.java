@@ -14,17 +14,21 @@ import org.springframework.security.oauth2.client.web.DefaultOAuth2Authorization
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 
+/**
+ * Google Gmail 토큰 저장·갱신과, Google authorize 때 refresh를 받기 위한 파라미터.
+ */
 @Configuration
 public class OAuth2ClientConfig {
 
     @Bean
     public OAuth2AuthorizedClientService authorizedClientService(ClientRegistrationRepository clientRegistrationRepository) {
+        // GoogleGmailTokenService가 principal name으로 access/refresh를 꺼낸다.
         return new InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository);
     }
 
     @Bean
     public OAuth2AuthorizedClientManager authorizedClientManager(ClientRegistrationRepository clientRegistrationRepository, OAuth2AuthorizedClientService authorizedClientService) {
-        
+        // access가 곧 만료되면 refresh_token grant로 바꾼다.
         OAuth2AuthorizedClientProvider provider = OAuth2AuthorizedClientProviderBuilder.builder()
                 .authorizationCode()
                 .refreshToken()
@@ -60,6 +64,7 @@ public class OAuth2ClientConfig {
         if (request == null) {
             return null;
         }
+
         Object registrationId = request.getAttribute("registration_id");
         if (registrationId == null) {
             return request;
@@ -73,6 +78,7 @@ public class OAuth2ClientConfig {
             return request;
         }
 
+        // access_type=offline 이어야 refresh_token이 온다. prompt=consent는 매번 동의를 받아 refresh를 놓치지 않게 한다.
         return OAuth2AuthorizationRequest.from(request)
                 .additionalParameters(params -> {
                     params.put("access_type", "offline");

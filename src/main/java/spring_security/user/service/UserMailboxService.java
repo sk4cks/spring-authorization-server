@@ -12,6 +12,9 @@ import spring_security.user.domain.SysUser;
 import spring_security.user.dto.MailboxCredentialsResponse;
 import spring_security.user.repository.SysUserQueryRepository;
 
+/**
+ * BFF IMAP/SMTP 접속용 메일함 자격. 평문 비밀번호를 내려주므로 내부 API key만 통과한다.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,10 +29,12 @@ public class UserMailboxService {
                 .findByUserId(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
 
+        // 가입 중 Mailcow 생성이 스킵됐거나 암호 저장 전이면 IMAP을 열 수 없다.
         if (!StringUtils.hasText(user.getMailboxPasswordEnc())) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND, "Mailbox credentials not found: " + userId);
         }
 
+        // DB에는 AES 암호문만 있다. BFF가 IMAP LOGIN에 쓸 평문으로 복호화한다.
         String plainPassword = mailboxPasswordCipher.decrypt(user.getMailboxPasswordEnc());
 
         return new MailboxCredentialsResponse(

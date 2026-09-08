@@ -71,6 +71,8 @@ public class MailContact {
         MailContact contact = new MailContact();
         contact.userSeq = userSeq;
         contact.displayName = displayName;
+
+        // 비교·중복 체크는 서비스에서 trim/소문자. 저장은 trim만.
         contact.email = email.trim();
 
         return contact;
