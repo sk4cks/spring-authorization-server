@@ -84,8 +84,10 @@ public class MailcowClient {
                     url, new HttpEntity<>(body, headers), String.class);
             String responseBody = response.getBody() != null ? response.getBody() : "";
 
-            // HTTP 2xx여도 JSON type=error 이면 메일함이 안 만들어진 것이다.
-            if (!response.getStatusCode().is2xxSuccessful() || responseBody.contains("\"type\":\"error\"")) {
+            // HTTP 2xx여도 type=error/danger 이면 메일함이 안 만들어진 것이다. (한도 초과는 danger)
+            if (!response.getStatusCode().is2xxSuccessful()
+                    || responseBody.contains("\"type\":\"error\"")
+                    || responseBody.contains("\"type\":\"danger\"")) {
                 log.error("Mailcow create mailbox failed: status={} body={}", response.getStatusCode(), responseBody);
                 throw new ApiException(ErrorCode.MAILCOW_ERROR, "Failed to create mailbox: " + localPart + "@" + domain);
             }
