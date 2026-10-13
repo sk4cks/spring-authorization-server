@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 
 /**
  * 사용자가 직접 추가한 개인 연락처 (MAIL_CONTACT).
- * 가입 계정(SYS_USER)과 이메일이 같으면 목록 API에서는 이 행을 숨기고 계정을 보여 준다.
+ * 가입 계정(SYS_USER)과 이메일이 같으면 목록 API에서는 이 행을 숨기고 계정만 표시.
  */
 @Entity
 @Table(name = "MAIL_CONTACT", schema = "note")
@@ -40,7 +40,7 @@ public class MailContact {
     @Column(name = "USER_SEQ", nullable = false)
     private Long userSeq;
 
-    /** 화면 표시명. 없으면 이메일만 쓴다. */
+    /** 화면 표시명. 없으면 이메일만 사용. */
     @Column(name = "DISPLAY_NAME", length = 120)
     private String displayName;
 
@@ -59,7 +59,7 @@ public class MailContact {
     @Column(name = "UPDATED_BY")
     private Long updatedBy;
 
-    /** N=활성, Y=삭제. 목록 쿼리는 N만 본다. */
+    /** N=활성, Y=삭제. 목록 쿼리는 N만 조회. */
     @Column(name = "DEL_YN", nullable = false, length = 1)
     private String delYn;
 
@@ -78,7 +78,7 @@ public class MailContact {
         return contact;
     }
 
-    /** DEL_YN=Y. 실제 DELETE는 하지 않는다. */
+    /** DEL_YN=Y. 실제 DELETE는 없음. */
     public void softDelete(Long actorUserSeq) {
         if (DelYn.isDeleted(delYn)) {
             return;

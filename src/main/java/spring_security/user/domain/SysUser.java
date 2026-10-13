@@ -79,6 +79,7 @@ public class SysUser {
     @Column(name = "MAILBOX_PASSWORD_ENC", length = 512)
     private String mailboxPasswordEnc;
 
+    /** 감사 컬럼과 함께 사용자 행을 만드는 생성. */
     private SysUser(
             String userId,
             String mailAddress,
@@ -96,21 +97,24 @@ public class SysUser {
         this.delYn = DelYn.N;
     }
 
+    /** 로컬 계정 생성. SNS 필드는 비우고 비밀번호 해시 저장. */
     public static SysUser createLocal(String userId, String mailAddress, String passwordHash) {
         // SNS 필드는 비우고, passwordHash는 {bcrypt}...
         return new SysUser(userId, mailAddress, passwordHash, AuthProvider.LOCAL, null, null);
     }
 
+    /** SNS 계정 생성. 앱 비밀번호는 없음. */
     public static SysUser createSocial(
             String userId,
             String mailAddress,
             AuthProvider authProvider,
             String externalId,
             String externalEmail) {
-        // 앱 비밀번호는 없다. 메일함 비번은 가입 후 랜덤으로 넣는다.
+        // 앱 비밀번호는 없음. 메일함 비번은 가입 후 랜덤으로 저장.
         return new SysUser(userId, mailAddress, null, authProvider, externalId, externalEmail);
     }
 
+    /** ACTIVE이고 미탈퇴인지 확인. */
     public boolean isActive() {
         return status == UserStatus.ACTIVE && DelYn.N.equals(delYn);
     }
@@ -122,7 +126,7 @@ public class SysUser {
 
     /** 탈퇴(soft delete) — DEL_YN=Y, STATUS=INACTIVE */
     public void softDelete(Long actorUserSeq) {
-        // 이미 탈퇴면 재호출해도 상태를 덮지 않는다.
+        // 이미 탈퇴면 재호출해도 상태를 덮지 않음.
         if (DelYn.isDeleted(delYn)) {
             return;
         }

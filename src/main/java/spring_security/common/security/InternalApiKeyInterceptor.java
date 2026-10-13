@@ -18,6 +18,7 @@ public class InternalApiKeyInterceptor implements HandlerInterceptor {
 
     private final InternalApiKeyVerifier internalApiKeyVerifier;
 
+    /** 키가 없거나 틀리면 401. 맞으면 컨트롤러로 진행. */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         // 키가 없거나 틀리면 UNAUTHORIZED. 맞으면 컨트롤러로 진행.

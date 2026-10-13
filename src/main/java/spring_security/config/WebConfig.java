@@ -7,6 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    /** 로컬 프론트 origin 허용. 쿠키와 Authorization 헤더 포함. */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         // 프론트는 보통 BFF만 치므로 로컬 개발용. 자격 증명은 쿠키/Authorization 헤더.

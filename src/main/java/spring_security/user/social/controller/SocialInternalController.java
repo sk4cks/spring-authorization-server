@@ -16,7 +16,7 @@ import spring_security.user.social.service.SocialRegisterService;
 import java.util.Map;
 
 /**
- * SNS 온보딩. BFF가 JWT sns_* 클레임으로 상태를 묻고, userId를 고르면 가입한다.
+ * SNS 온보딩. BFF가 JWT sns_* 클레임으로 상태 조회, userId를 고르면 가입.
  */
 @RestController
 @RequestMapping("/auth/social")
@@ -30,7 +30,7 @@ public class SocialInternalController {
     public ResponseEntity<SocialStatusResponse> status(
             @RequestParam String provider,
             @RequestParam String externalId) {
-        // registered=true면 이미 userId가 있고, false면 온보딩 화면으로 간다.
+        // registered=true면 이미 userId가 있고, false면 온보딩 화면으로 이동.
         return ResponseEntity.ok(socialRegisterService.getStatus(provider, externalId));
     }
 

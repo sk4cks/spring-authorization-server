@@ -18,7 +18,7 @@ import java.util.Optional;
 import static spring_security.user.domain.QSysUser.sysUser;
 
 /**
- * SYS_USER 조회 (Querydsl). 탈퇴({@code DEL_YN=Y})는 기본으로 뺀다.
+ * SYS_USER 조회 (Querydsl). 탈퇴({@code DEL_YN=Y})는 기본으로 제외.
  * 쓰기는 {@link SysUserRepository}.
  */
 @Repository

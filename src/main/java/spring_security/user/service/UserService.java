@@ -18,9 +18,10 @@ public class UserService {
     private final SysUserQueryRepository sysUserQueryRepository;
     private final SysUserRepository sysUserRepository;
 
+    /** userId로 사용자 조회. 비밀번호는 응답에서 제외. */
     @Transactional(readOnly = true)
     public UserResponse findByUserId(String userId) {
-        // 비밀번호·메일함 암호는 UserResponse에 넣지 않는다.
+        // 비밀번호·메일함 암호는 UserResponse에서 제외.
         return sysUserQueryRepository.findByUserId(userId)
                 .map(UserResponse::from)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
@@ -33,10 +34,10 @@ public class UserService {
                 .findByUserId(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
 
-        // DEL_YN=Y, STATUS=INACTIVE. 로그인·주소록 디렉터리에서 빠진다.
+        // DEL_YN=Y, STATUS=INACTIVE. 로그인·주소록 디렉터리에서 제외.
         user.softDelete(user.getUserSeq());
 
-        // dirty checking으로도 UPDATE 되지만, 명시 save로 커밋 전에 반영을 고정한다.
+        // dirty checking으로도 UPDATE 되지만, 명시 save로 커밋 전에 반영 고정.
         sysUserRepository.save(user);
     }
 }

@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 
 /**
  * 그룹 공유 한 줄 (MAIL_CONTACT_GROUP_SHARE).
- * 한 그룹을 다른 SYS_USER에게 READ/WRITE로 열어 준다. 끊을 때는 soft delete.
+ * 한 그룹을 다른 SYS_USER에게 READ/WRITE로 여는 공유. 끊을 때는 soft delete.
  */
 @Entity
 @Table(name = "MAIL_CONTACT_GROUP_SHARE", schema = "note")
@@ -80,13 +80,13 @@ public class MailContactGroupShare {
         return share;
     }
 
-    /** READ ↔ WRITE. 이미 공유 중인 대상에 다시 공유하면 여기로 온다. */
+    /** READ ↔ WRITE. 이미 공유 중인 대상에 다시 공유하면 이 경로로 갱신. */
     public void updatePermission(ContactSharePermission permission, Long actorUserSeq) {
         this.permission = permission;
         this.updatedBy = actorUserSeq;
     }
 
-    /** 공유 해제. 그룹 자체는 그대로다. */
+    /** 공유 해제. 그룹 자체는 유지. */
     public void softDelete(Long actorUserSeq) {
         if (DelYn.isDeleted(delYn)) {
             return;

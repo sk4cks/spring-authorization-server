@@ -7,10 +7,11 @@ import spring_security.contact.domain.MailContactGroupShare;
 
 /**
  * 그룹 공유 API 입출력.
- * 한 그룹을 다른 SYS_USER에게 READ 또는 WRITE로 열어 준다.
+ * 한 그룹을 다른 SYS_USER에게 READ 또는 WRITE로 여는 공유.
  */
 public final class ContactShareDto {
 
+    /** 정적 팩토리만 쓰는 DTO. */
     private ContactShareDto() {}
 
 
@@ -34,6 +35,7 @@ public final class ContactShareDto {
     public record Response(
             Long id, Long groupId, String sharedWithUserId, ContactSharePermission permission) {
 
+        /** 공유 행과 대상 userId로 응답 생성. */
         public static Response of(MailContactGroupShare share, String sharedWithUserId) {
             return new Response(
                     share.getShareSeq(), share.getGroupSeq(), sharedWithUserId, share.getPermission());

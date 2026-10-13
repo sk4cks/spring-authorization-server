@@ -33,6 +33,7 @@ public class MailcowClient {
     private final RestTemplate mailcowRestTemplate;
     private final MailcowProperties properties;
 
+    /** Mailcow base URL과 self-signed RestTemplate 주입. */
     public MailcowClient(
             @Qualifier("mailcowRestTemplate") RestTemplate mailcowRestTemplate,
             MailcowProperties properties) {
@@ -49,7 +50,7 @@ public class MailcowClient {
      * @param password   메일함 로그인 비밀번호 (IMAP/SMTP)
      */
     public void createMailbox(String localPart, String domain, String displayName, String password) {
-        // 로컬 개발에서 Mailcow가 없으면 가입만 통과시킨다.
+        // 로컬 개발에서 Mailcow가 없으면 가입만 통과.
         if (!properties.enabled()) {
             log.debug("Mailcow disabled — skip mailbox create for {}@{}", localPart, domain);
 
@@ -71,7 +72,7 @@ public class MailcowClient {
         body.put("name", StringUtils.hasText(displayName) ? displayName : localPart);
         body.put("password", password);
 
-        // Mailcow는 확인용 password2를 요구한다. 같은 값을 넣는다.
+        // Mailcow는 확인용 password2를 요구. 같은 값을 저장.
         body.put("password2", password);
         body.put("quota", "1024");
         body.put("active", "1");
@@ -84,7 +85,7 @@ public class MailcowClient {
                     url, new HttpEntity<>(body, headers), String.class);
             String responseBody = response.getBody() != null ? response.getBody() : "";
 
-            // HTTP 2xx여도 type=error/danger 이면 메일함이 안 만들어진 것이다. (한도 초과는 danger)
+            // HTTP 2xx여도 type=error/danger 이면 메일함 생성 실패. (한도 초과는 danger)
             if (!response.getStatusCode().is2xxSuccessful()
                     || responseBody.contains("\"type\":\"error\"")
                     || responseBody.contains("\"type\":\"danger\"")) {
@@ -100,6 +101,7 @@ public class MailcowClient {
         }
     }
 
+    /** base URL 끝 슬래시 제거. */
     private static String trimTrailingSlash(String baseUrl) {
         if (baseUrl.endsWith("/")) {
             return baseUrl.substring(0, baseUrl.length() - 1);

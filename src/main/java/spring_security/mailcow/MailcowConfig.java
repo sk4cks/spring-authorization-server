@@ -21,16 +21,17 @@ public class MailcowConfig {
 
     /**
      * 로컬 Mailcow self-signed 전용 RestTemplate.
-     * JVM 전역 SSL 기본값은 건드리지 않는다 (Google OAuth 등 다른 HTTPS와 분리).
+     * JVM 전역 SSL 기본값은 변경 없음 (Google OAuth 등 다른 HTTPS와 분리).
      */
     @Bean(name = "mailcowRestTemplate")
     RestTemplate mailcowRestTemplate(RestTemplateBuilder builder) throws Exception {
         SSLContext sslContext = SSLContext.getInstance("TLS");
 
-        // Mailcow 컨테이너 self-signed만 통과. HttpsURLConnection마다 이 팩토리를 붙인다.
+        // Mailcow 컨테이너 self-signed만 통과. HttpsURLConnection마다 이 팩토리 적용.
         sslContext.init(null, trustAllManagers(), new SecureRandom());
 
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory() {
+            /** Mailcow self-signed만 통과하는 SSL 적용. */
             @Override
             protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
                 if (connection instanceof HttpsURLConnection https) {
@@ -47,11 +48,15 @@ public class MailcowConfig {
         return builder.requestFactory(() -> requestFactory).build();
     }
 
+    /** Mailcow self-signed 통과용 TrustManager. */
     private static TrustManager[] trustAllManagers() {
         return new TrustManager[]{
                 new X509TrustManager() {
+                    /** self-signed 통과용. 클라이언트 인증서 검사 생략. */
                     public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                    /** self-signed 통과용. 서버 인증서 검사 생략. */
                     public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+                    /** self-signed 통과용. 허용 issuer 없음. */
                     public X509Certificate[] getAcceptedIssuers() {
                         return new X509Certificate[0];
                     }

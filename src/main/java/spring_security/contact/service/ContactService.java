@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 /**
  * 주소록 유스케이스.
  * 목록은 SYS_USER(가입 계정 디렉터리)와 MAIL_CONTACT(내가 수동 추가한 행)를 합치고,
- * 그룹은 소유/공유에 따라 멤버·권한을 붙여 내려준다.
+ * 그룹은 소유/공유에 따라 멤버·권한을 붙여 응답.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,12 +49,12 @@ public class ContactService {
      */
     @Transactional(readOnly = true)
     public List<ContactDto.Response> listContacts(String userId, String q) {
-        // userId로 활성 SYS_USER를 찾고, 검색어는 null이면 빈 문자열로 맞춘다.
+        // userId로 활성 SYS_USER 조회. 검색어는 null이면 빈 문자열.
         return collectContacts(requireUser(userId), q == null ? "" : q.trim());
     }
 
     /**
-     * 내 주소록에 이메일 한 건을 넣는다.
+     * 내 주소록에 이메일 한 건 추가.
      * SYS_USER 메일 또는 이미 가진 MAIL_CONTACT와 겹치면 CONTACT_ALREADY_EXISTS.
      */
     @Transactional
@@ -62,10 +62,10 @@ public class ContactService {
         // 이 주소록을 소유할 로그인 사용자.
         SysUser user = requireUser(userId);
 
-        // 비교·저장은 공백 없는 이메일로 한다.
+        // 비교·저장은 공백 없는 이메일.
         String email = request.email().trim();
 
-        // 가입 계정 메일이거나, 이미 내 MAIL_CONTACT에 있으면 새로 만들지 않는다.
+        // 가입 계정 메일이거나, 이미 내 MAIL_CONTACT에 있으면 추가 생략.
         if (sysUserQueryRepository.existsActiveMailIgnoreCase(email)
                 || contactQueryRepository.existsActiveEmail(user.getUserSeq(), email)) {
             throw new ApiException(ErrorCode.CONTACT_ALREADY_EXISTS);
@@ -75,40 +75,40 @@ public class ContactService {
         MailContact saved = contactRepository.save(
                 MailContact.create(user.getUserSeq(), blankToNull(request.displayName()), email));
 
-        // API는 엔티티가 아니라 ContactDto.Response 모양으로 내려준다.
+        // API는 엔티티가 아니라 ContactDto.Response 모양으로 응답.
         return ContactDto.Response.from(saved);
     }
 
     /**
      * 내 MAIL_CONTACT를 soft delete.
-     * 그 이메일이 가입 계정이면 디렉터리 항목이라 지우지 않는다.
+     * 그 이메일이 가입 계정이면 디렉터리 항목이라 삭제 생략.
      */
     @Transactional
     public void deleteContact(String userId, Long contactId) {
         SysUser user = requireUser(userId);
 
-        // 내 것 + 활성 행만. 없으면 없는 연락처로 본다.
+        // 내 것 + 활성 행만. 없으면 없는 연락처.
         MailContact contact = contactQueryRepository
                 .findActiveBySeqAndUser(contactId, user.getUserSeq())
                 .orElseThrow(() -> new ApiException(ErrorCode.CONTACT_NOT_FOUND));
 
-        // 디렉터리(SYS_USER)와 같은 이메일은 주소록 행만 지울 수 없다.
+        // 디렉터리(SYS_USER)와 같은 이메일은 주소록 행만 삭제 불가.
         if (sysUserQueryRepository.existsActiveMailIgnoreCase(contact.getEmail())) {
             throw new ApiException(ErrorCode.FORBIDDEN, "가입된 계정 연락처는 삭제할 수 없습니다.");
         }
 
-        // DEL_YN=Y. 목록 쿼리에서 빠진다.
+        // DEL_YN=Y. 목록 쿼리에서 제외.
         contact.softDelete(user.getUserSeq());
     }
 
     /**
-     * 접근 가능한 그룹 목록(소유 + 공유받음). 멤버/권한은 {@link #toGroupResponse}에서 채운다.
+     * 접근 가능한 그룹 목록(소유 + 공유받음). 멤버/권한은 {@link #toGroupResponse}에서 채움.
      */
     @Transactional(readOnly = true)
     public List<ContactGroupDto.Response> listGroups(String userId) {
         SysUser user = requireUser(userId);
 
-        // 가입 계정 메일 집합. 그룹 멤버 중 같은 이메일의 MAIL_CONTACT는 숨긴다.
+        // 가입 계정 메일 집합. 그룹 멤버 중 같은 이메일의 MAIL_CONTACT는 숨김.
         Set<String> directoryEmails = accountEmails();
 
         // 소유 그룹 + 공유받은 그룹을 응답 DTO로 변환.
@@ -117,7 +117,7 @@ public class ContactService {
                 .toList();
     }
 
-    /** 호출자 소유 빈 그룹을 만든다. */
+    /** 호출자 소유 빈 그룹 생성. */
     @Transactional
     public ContactGroupDto.Response createGroup(String userId, ContactGroupDto.Request request) {
         SysUser user = requireUser(userId);
@@ -137,7 +137,7 @@ public class ContactService {
         SysUser user = requireUser(userId);
         MailContactGroup group = requireGroup(groupId);
 
-        // WRITE 공유자도 이름은 못 바꾼다. 소유자 PK가 같아야 한다.
+        // WRITE 공유자도 이름은 변경 불가. 소유자 PK가 같아야 함.
         if (!Objects.equals(group.getOwnerUserSeq(), user.getUserSeq())) {
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
@@ -150,7 +150,7 @@ public class ContactService {
 
     /**
      * 그룹 soft delete. 소유자만.
-     * 공유 목록도 같이 비활성화해서, 공유받은 사람 목록에서 사라지게 한다.
+     * 공유 목록도 같이 비활성화해서, 공유받은 사람 목록에서 제외.
      */
     @Transactional
     public void deleteGroup(String userId, Long groupId) {
@@ -163,16 +163,16 @@ public class ContactService {
 
         group.softDelete(user.getUserSeq());
 
-        // 그룹을 지우면 남은 공유 행도 같이 비활성화한다.
+        // 그룹을 지우면 남은 공유 행도 같이 비활성화.
         for (MailContactGroupShare share : contactQueryRepository.findActiveByGroupSeq(groupId)) {
             share.softDelete(user.getUserSeq());
         }
     }
 
     /**
-     * 그룹 멤버를 body의 contactIds + accountUserSeqs로 통째로 교체한다.
+     * 그룹 멤버를 body의 contactIds + accountUserSeqs로 통째로 교체.
      * 기존 MAIL_CONTACT_GROUP_MEMBER는 지우고 다시 INSERT.
-     * WRITE 공유자가 넣은 자기 연락처는 소유자 주소록 행으로 복사한다.
+     * WRITE 공유자가 넣은 자기 연락처는 소유자 주소록 행으로 복사.
      */
     @Transactional
     public ContactGroupDto.Response replaceMembers(
@@ -180,23 +180,23 @@ public class ContactService {
         SysUser user = requireUser(userId);
         MailContactGroup group = requireGroup(groupId);
 
-        // 소유자 또는 WRITE 공유만 멤버를 바꿀 수 있다.
+        // 소유자 또는 WRITE 공유만 멤버 변경.
         requireWrite(group, user.getUserSeq());
 
         Long ownerSeq = group.getOwnerUserSeq();
 
-        // body가 null이거나 중복 id가 있어도 한 번씩만 쓴다.
+        // body가 null이거나 중복 id가 있어도 한 번씩만 사용.
         List<Long> contactIds = distinct(request == null ? null : request.contactIds());
         List<Long> accountUserSeqs = distinct(request == null ? null : request.accountUserSeqs());
 
-        // 연락처 이메일이 가입 계정이면 여기로 합쳐진다.
+        // 연락처 이메일이 가입 계정이면 여기로 합침.
         LinkedHashSet<Long> accountSeqs = new LinkedHashSet<>(accountUserSeqs);
 
         // WRITE 공유자의 연락처 id → 소유자 MAIL_CONTACT 행(또는 계정 seq).
         List<MailContact> ownerContacts = resolveMembersToOwner(contactIds, ownerSeq, user.getUserSeq(), accountSeqs);
         List<SysUser> accounts = sysUserQueryRepository.findActiveByUserSeqs(accountSeqs);
 
-        // 요청한 계정 seq 중 없는 사용자가 있으면 멤버로 넣지 않는다.
+        // 요청한 계정 seq 중 없는 사용자가 있으면 멤버 추가 생략.
         if (accounts.size() != accountSeqs.size()) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND, "Group members must be registered accounts");
         }
@@ -217,13 +217,13 @@ public class ContactService {
         return toGroupResponse(group, user.getUserSeq(), accountEmails());
     }
 
-    /** 그룹 공유 행 목록. 대상 userId를 SYS_USER에서 붙여서 내려준다. */
+    /** 그룹 공유 행 목록. 대상 userId를 SYS_USER에서 붙여 응답. */
     @Transactional(readOnly = true)
     public List<ContactShareDto.Response> listShares(String userId, Long groupId) {
         SysUser user = requireUser(userId);
         MailContactGroup group = requireGroup(groupId);
 
-        // 소유자 또는 공유받은 사람만 목록을 본다.
+        // 소유자 또는 공유받은 사람만 목록 조회.
         requireAccess(group, user.getUserSeq());
 
         // sharedWithUserSeq → 로그인 id. 탈퇴 등이면 빈 문자열.
@@ -238,7 +238,7 @@ public class ContactService {
     }
 
     /**
-     * 대상 사용자에게 그룹을 공유한다.
+     * 대상 사용자에게 그룹 공유.
      * 이미 활성 공유가 있으면 permission만 바꾸고, 없으면 INSERT.
      */
     @Transactional
@@ -249,10 +249,10 @@ public class ContactService {
 
         requireWrite(group, actor.getUserSeq());
 
-        // 공유받을 사람. userId로 SYS_USER를 찾는다.
+        // 공유받을 사람. userId로 SYS_USER 조회.
         SysUser target = requireUser(request.sharedWithUserId());
 
-        // 본인·그룹 소유자에게 공유하는 요청은 막는다.
+        // 본인·그룹 소유자에게 공유하는 요청은 거절.
         if (Objects.equals(target.getUserSeq(), actor.getUserSeq())
                 || Objects.equals(target.getUserSeq(), group.getOwnerUserSeq())) {
             throw new ApiException(ErrorCode.INVALID_REQUEST, "Cannot share group with yourself");
@@ -275,20 +275,20 @@ public class ContactService {
     }
 
     /**
-     * 공유 한 건을 끊는다.
-     * 공유받은 사람은 자기 행만, 소유자/WRITE는 아무 공유나 끊을 수 있다.
+     * 공유 한 건 해제.
+     * 공유받은 사람은 자기 행만, 소유자/WRITE는 아무 공유나 해제.
      */
     @Transactional
     public void revokeShare(String userId, Long groupId, Long shareId) {
         SysUser actor = requireUser(userId);
         MailContactGroup group = requireGroup(groupId);
 
-        // shareId가 이 그룹의 활성 행이어야 한다.
+        // shareId가 이 그룹의 활성 행이어야 함.
         MailContactGroupShare share = contactQueryRepository
                 .findActiveBySeqAndGroup(shareId, groupId)
                 .orElseThrow(() -> new ApiException(ErrorCode.CONTACT_SHARE_NOT_FOUND));
 
-        // 공유받은 사람은 자기 공유만 끊을 수 있고, 그 외는 WRITE가 필요하다.
+        // 공유받은 사람은 자기 공유만 해제. 그 외는 WRITE 필요.
         boolean ownShare = Objects.equals(share.getSharedWithUserSeq(), actor.getUserSeq());
 
         if (!ownShare) {
@@ -310,7 +310,7 @@ public class ContactService {
         String query = q == null ? "" : q.trim();
         List<RecipientSuggestItem> result = new ArrayList<>();
 
-        // 소유 + 공유받은 그룹. 그룹 칩과 공유 멤버 연락처에 쓴다.
+        // 소유 + 공유받은 그룹. 그룹 칩과 공유 멤버 연락처에 사용.
         List<MailContactGroup> accessible = contactQueryRepository.findAccessibleByUser(user.getUserSeq());
 
         // 1) 그룹 이름 매칭 → 멤버 메일을 담은 그룹 후보.
@@ -327,7 +327,7 @@ public class ContactService {
             }
         }
 
-        // 이메일 소문자 키로 중복을 막는다. 계정 연락처가 개인 연락처보다 우선.
+        // 이메일 소문자 키로 중복 방지. 계정 연락처가 개인 연락처보다 우선.
         Map<String, ContactDto.Response> byEmail = new LinkedHashMap<>();
 
         // 2) 디렉터리 + 내 MAIL_CONTACT.
@@ -335,7 +335,7 @@ public class ContactService {
             byEmail.put(contact.email().toLowerCase(Locale.ROOT), contact);
         }
 
-        // 공유받은 그룹의 멤버는 내 MAIL_CONTACT가 아니므로 따로 붙인다.
+        // 공유받은 그룹의 멤버는 내 MAIL_CONTACT가 아니므로 따로 추가.
         List<Long> sharedGroupIds = accessible.stream()
                 .filter(g -> !Objects.equals(g.getOwnerUserSeq(), user.getUserSeq()))
                 .map(MailContactGroup::getGroupSeq)
@@ -350,14 +350,14 @@ public class ContactService {
                         continue;
                     }
 
-                    // 이미 내 목록에 있는 이메일은 덮어쓰지 않는다.
+                    // 이미 내 목록에 있는 이메일은 덮어쓰기 생략.
                     byEmail.putIfAbsent(
                             contact.getEmail().toLowerCase(Locale.ROOT), ContactDto.Response.from(contact));
                 }
             }
         }
 
-        // 계정이면 accountUserSeq, 개인 연락처면 contactSeq를 자동완성 id로 쓴다.
+        // 계정이면 accountUserSeq, 개인 연락처면 contactSeq를 자동완성 id로 사용.
         for (ContactDto.Response contact : byEmail.values()) {
             Long suggestId = contact.fromAccount() ? contact.accountUserSeq() : contact.id();
             result.add(RecipientSuggestItem.contact(suggestId, contact.displayName(), contact.email()));
@@ -367,15 +367,15 @@ public class ContactService {
     }
 
     /**
-     * 목록/검색용 연락처를 만든다.
-     * SYS_USER를 앞에 두고, 같은 이메일의 MAIL_CONTACT는 중복이라 뺀다.
+     * 목록/검색용 연락처 조립.
+     * SYS_USER를 앞에 두고, 같은 이메일의 MAIL_CONTACT는 중복이라 제외.
      */
     private List<ContactDto.Response> collectContacts(SysUser user, String query) {
         List<SysUser> accounts = sysUserQueryRepository.findAllActive();
         Set<String> directoryEmails = accountEmails(accounts);
         List<ContactDto.Response> result = new ArrayList<>();
 
-        // 가입 계정 디렉터리. 메일 없는 계정은 주소록에 안 넣는다.
+        // 가입 계정 디렉터리. 메일 없는 계정은 주소록에서 제외.
         for (SysUser account : accounts) {
             if (!StringUtils.hasText(account.getMailAddress())) {
                 continue;
@@ -388,7 +388,7 @@ public class ContactService {
             result.add(ContactDto.Response.fromAccount(account));
         }
 
-        // 내가 수동으로 넣은 행. 디렉터리와 이메일이 같으면 숨긴다.
+        // 내가 수동으로 넣은 행. 디렉터리와 이메일이 같으면 숨김.
         for (MailContact contact : contactQueryRepository.findActiveByUserSeq(user.getUserSeq())) {
             if (directoryEmails.contains(contact.getEmail().toLowerCase(Locale.ROOT))) {
                 continue;
@@ -405,20 +405,20 @@ public class ContactService {
     }
 
     /**
-     * 그룹 한 건을 API 응답으로 만든다.
+     * 그룹 한 건을 API 응답으로 조립.
      * 소유자면 WRITE, 공유면 그 permission.
-     * 멤버는 계정(memberUserSeq) 먼저, 그다음 주소록 행. 디렉터리와 같은 이메일의 주소록 행은 숨긴다.
+     * 멤버는 계정(memberUserSeq) 먼저, 그다음 주소록 행. 디렉터리와 같은 이메일의 주소록 행은 숨김.
      */
     private ContactGroupDto.Response toGroupResponse(
             MailContactGroup group, Long viewerUserSeq, Set<String> directoryEmails) {
         boolean owned = Objects.equals(group.getOwnerUserSeq(), viewerUserSeq);
 
-        // 내 그룹이면 공유 행을 볼 필요 없다.
+        // 내 그룹이면 공유 행 조회 생략.
         MailContactGroupShare share = owned
                 ? null
                 : contactQueryRepository.findActive(group.getGroupSeq(), viewerUserSeq).orElse(null);
 
-        // 공유 행이 비정상적으로 없으면 READ로 내려 화면이 깨지지 않게 한다.
+        // 공유 행이 비정상적으로 없으면 READ로 내려 화면이 깨지지 않게 유지.
         ContactSharePermission permission = owned
                 ? ContactSharePermission.WRITE
                 : share != null ? share.getPermission() : ContactSharePermission.READ;
@@ -426,7 +426,7 @@ public class ContactService {
         List<ContactDto.Response> members = new ArrayList<>();
         List<Long> memberUserSeqs = contactQueryRepository.findUserSeqsByGroupSeq(group.getGroupSeq());
 
-        // 계정 멤버를 먼저 붙인다.
+        // 계정 멤버를 먼저 추가.
         for (SysUser account : sysUserQueryRepository.findActiveByUserSeqs(memberUserSeqs)) {
             members.add(ContactDto.Response.fromAccount(account));
         }
@@ -435,7 +435,7 @@ public class ContactService {
 
         if (!contactIds.isEmpty()) {
             for (MailContact contact : contactQueryRepository.findActiveBySeqs(contactIds)) {
-                // 이미 계정으로 나온 이메일의 주소록 행은 중복이라 뺀다.
+                // 이미 계정으로 나온 이메일의 주소록 행은 중복이라 제외.
                 if (directoryEmails.contains(contact.getEmail().toLowerCase(Locale.ROOT))) {
                     continue;
                 }
@@ -456,7 +456,7 @@ public class ContactService {
         return ContactGroupDto.Response.of(group, owned, permission, ownerUserId, sharedByUserId, members);
     }
 
-    /** 그룹 멤버들의 메일 주소. 자동완성 그룹 칩에 넣는다. */
+    /** 그룹 멤버들의 메일 주소. 자동완성 그룹 칩에 포함. */
     private List<String> memberEmails(Long groupSeq) {
         Set<String> emails = new LinkedHashSet<>();
         List<Long> memberUserSeqs = contactQueryRepository.findUserSeqsByGroupSeq(groupSeq);
@@ -478,19 +478,19 @@ public class ContactService {
         return new ArrayList<>(emails);
     }
 
-    /** 그룹을 볼 수 있는지. 소유자이거나 활성 공유 행이 있어야 한다. */
+    /** 그룹 조회 가능 여부. 소유자이거나 활성 공유 행이 있어야 함. */
     private void requireAccess(MailContactGroup group, Long userSeq) {
         if (Objects.equals(group.getOwnerUserSeq(), userSeq)) {
             return;
         }
 
-        // 공유 행이 없으면 이 그룹을 보면 안 된다.
+        // 공유 행이 없으면 이 그룹 조회 불가.
         if (contactQueryRepository.findActive(group.getGroupSeq(), userSeq).isEmpty()) {
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
     }
 
-    /** 멤버 교체·공유 변경용. 소유자이거나 permission=WRITE 공유여야 한다. */
+    /** 멤버 교체·공유 변경용. 소유자이거나 permission=WRITE 공유여야 함. */
     private void requireWrite(MailContactGroup group, Long userSeq) {
         if (Objects.equals(group.getOwnerUserSeq(), userSeq)) {
             return;
@@ -530,13 +530,14 @@ public class ContactService {
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId));
     }
 
-    /** 가입 계정 메일 소문자 집합. 개인 연락처와 겹치는지 볼 때 쓴다. */
+    /** 가입 계정 메일 소문자 집합. 개인 연락처와 겹치는지 볼 때 사용. */
     private Set<String> accountEmails() {
         return accountEmails(sysUserQueryRepository.findAllActive());
     }
 
+    /** 메일 없는 계정은 빼고, 나머지는 소문자로 모으는 집합. */
     private static Set<String> accountEmails(List<SysUser> accounts) {
-        // 메일 없는 계정은 제외하고, 비교는 소문자로 한다.
+        // 메일 없는 계정은 제외하고, 비교는 소문자.
         return accounts.stream()
                 .map(SysUser::getMailAddress)
                 .filter(StringUtils::hasText)
@@ -545,9 +546,9 @@ public class ContactService {
     }
 
     /**
-     * 그룹에 넣을 MAIL_CONTACT를 소유자 주소록 기준으로 맞춘다.
+     * 그룹에 넣을 MAIL_CONTACT를 소유자 주소록 기준으로 맞춤.
      * WRITE 공유자가 자기 연락처 id를 보내도, 가입 계정이면 accountSeqs에 넣고
-     * 아니면 소유자 MAIL_CONTACT를 찾거나 새로 만든다. 그룹 멤버는 항상 소유자 쪽 행을 가리킨다.
+     * 아니면 소유자 MAIL_CONTACT 조회 또는 생성. 그룹 멤버는 항상 소유자 쪽 행.
      */
     private List<MailContact> resolveMembersToOwner(
             List<Long> contactIds, Long ownerSeq, Long actorSeq, Set<Long> accountSeqs) {
@@ -557,16 +558,16 @@ public class ContactService {
 
         List<MailContact> sources = contactQueryRepository.findActiveBySeqs(contactIds);
 
-        // 요청 id 개수와 조회 건수가 다르면 없는/삭제된 연락처가 끼어 있다.
+        // 요청 id 개수와 조회 건수가 다르면 없는/삭제된 연락처가 섞임.
         if (sources.size() != contactIds.size()) {
             throw new ApiException(ErrorCode.CONTACT_NOT_FOUND);
         }
 
-        // 같은 이메일은 한 행만. 입력 순서를 유지한다.
+        // 같은 이메일은 한 행만. 입력 순서 유지.
         LinkedHashMap<String, MailContact> ownerByEmail = new LinkedHashMap<>();
 
         for (MailContact source : sources) {
-            // 소유자 주소록도, 지금 수정하는 사람 주소록도 아니면 남의 연락처다.
+            // 소유자 주소록도, 지금 수정하는 사람 주소록도 아니면 남의 연락처.
             if (!Objects.equals(source.getUserSeq(), ownerSeq)
                     && !Objects.equals(source.getUserSeq(), actorSeq)) {
                 throw new ApiException(ErrorCode.FORBIDDEN, "Group members must be owner or editor contacts");
@@ -575,7 +576,7 @@ public class ContactService {
             SysUser account = sysUserQueryRepository.findActiveByMailIgnoreCase(source.getEmail()).orElse(null);
 
             if (account != null) {
-                // 가입 계정이면 MAIL_CONTACT 멤버가 아니라 계정 멤버로 넣는다.
+                // 가입 계정이면 MAIL_CONTACT 멤버가 아니라 계정 멤버로 추가.
                 accountSeqs.add(account.getUserSeq());
                 continue;
             }

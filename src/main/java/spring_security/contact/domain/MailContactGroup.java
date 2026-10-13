@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 
 /**
  * 연락처 그룹 (MAIL_CONTACT_GROUP).
- * 이름 변경·삭제는 소유자만. WRITE 공유자는 멤버·공유만 바꿀 수 있다.
+ * 이름 변경·삭제는 소유자만. WRITE 공유자는 멤버·공유만 변경.
  */
 @Entity
 @Table(name = "MAIL_CONTACT_GROUP", schema = "note")
@@ -70,13 +70,13 @@ public class MailContactGroup {
         return group;
     }
 
-    /** 그룹 이름만 바꾼다. */
+    /** 그룹 이름만 변경. */
     public void rename(String name, Long actorUserSeq) {
         this.name = name.trim();
         this.updatedBy = actorUserSeq;
     }
 
-    /** DEL_YN=Y. 멤버 행은 그대로 두고 그룹만 숨긴다. */
+    /** DEL_YN=Y. 멤버 행은 그대로 두고 그룹만 숨김. */
     public void softDelete(Long actorUserSeq) {
         if (DelYn.isDeleted(delYn)) {
             return;

@@ -13,7 +13,7 @@ import spring_security.auth.service.AuthService;
 import java.util.Map;
 
 /**
- * 로컬 로그인. BFF만 호출한다. 프론트는 :9000에 직접 붙지 않는다.
+ * 로컬 로그인. BFF만 호출. 프론트는 :9000에 직접 접속하지 않음.
  */
 @RestController
 @RequestMapping("/auth")
@@ -25,7 +25,7 @@ public class AuthController {
     /** BFF 전용 — 프론트는 API만 호출하고 이 endpoint는 API가 server-to-server로 사용 */
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest param) {
-        // userId/password를 검증한 뒤 JWT를 바로 내려준다.
+        // userId/password 검증 뒤 JWT를 바로 응답.
         return ResponseEntity.ok(authService.login(param));
     }
 }

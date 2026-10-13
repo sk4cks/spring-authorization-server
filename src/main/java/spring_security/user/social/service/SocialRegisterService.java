@@ -22,7 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * SNS 온보딩. JWT sns_* 클레임으로 이미 온 사용자가 userId를 고르면 SYS_USER를 만들고 토큰을 준다.
+ * SNS 온보딩. JWT sns_* 클레임으로 이미 온 사용자가 userId를 고르면 SYS_USER 생성과 토큰 발급.
  */
 @Service
 @RequiredArgsConstructor
@@ -39,6 +39,7 @@ public class SocialRegisterService {
     @Value("${app.mail.domain}")
     private String mailDomain;
 
+    /** provider와 외부 id로 온보딩 완료 여부 조회. */
     public SocialStatusResponse getStatus(String provider, String externalId) {
         AuthProvider authProvider = parseProvider(provider);
 
@@ -49,16 +50,17 @@ public class SocialRegisterService {
                 .orElseGet(() -> new SocialStatusResponse(false, null));
     }
 
+    /** userId를 고르면 SYS_USER 생성과 토큰 발급. */
     @Transactional
     public Map<String, Object> register(SocialRegisterRequest request) {
         AuthProvider authProvider = parseProvider(request.provider());
 
-        // 같은 Google/Kakao/Naver 계정이 이미 있으면 아이디를 또 고르지 않는다.
+        // 같은 Google/Kakao/Naver 계정이 이미 있으면 아이디 재선택 생략.
         if (sysUserQueryRepository.existsByAuthProviderAndExternalId(authProvider, request.externalId())) {
             throw new ApiException(ErrorCode.USER_ALREADY_EXISTS, "Social account already registered");
         }
 
-        // 로컬 가입과 같은 userId 공간. 이미 있으면 다른 아이디를 고르게 한다.
+        // 로컬 가입과 같은 userId 공간. 이미 있으면 다른 아이디 선택.
         if (sysUserQueryRepository.existsByUserId(request.userId())) {
             throw new ApiException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
         }
@@ -69,7 +71,7 @@ public class SocialRegisterService {
             throw new ApiException(ErrorCode.USER_ALREADY_EXISTS, "User already exists: " + request.userId());
         }
 
-        // SNS 이메일은 선택. 공백만 오면 null로 저장한다.
+        // SNS 이메일은 선택. 공백만 오면 null로 저장.
         String externalEmail = request.externalEmail();
 
         if (externalEmail != null && externalEmail.isBlank()) {
@@ -85,24 +87,26 @@ public class SocialRegisterService {
         mailcowClient.createMailbox(request.userId(), mailDomain, request.userId(), mailboxPassword);
         saved.assignMailboxPasswordEnc(mailboxPasswordCipher.encrypt(mailboxPassword));
 
-        // 온보딩 직후 바로 SPA에 넣을 토큰. SecurityContext Authentication은 없다.
+        // 온보딩 직후 바로 SPA에 넣을 토큰. SecurityContext Authentication은 없음.
         Map<String, Object> result = new LinkedHashMap<>(accessTokenService.issueAccessTokenForUser(saved));
         result.put("userId", saved.getUserId());
 
         return result;
     }
 
+    /** URL-safe 랜덤 메일함 비밀번호 생성. */
     private static String randomMailboxPassword() {
         byte[] bytes = new byte[24];
         SECURE_RANDOM.nextBytes(bytes);
 
-        // URL-safe라 Mailcow 비밀번호에 +/ 가 안 들어간다.
+        // URL-safe라 Mailcow 비밀번호에 +/ 가 들어가지 않음.
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
+    /** google/kakao/naver 문자열을 AuthProvider로 변환. */
     private static AuthProvider parseProvider(String provider) {
         try {
-            // JWT sns_provider / 쿼리 파라미터는 google 처럼 소문자로 올 수 있다.
+            // JWT sns_provider / 쿼리 파라미터는 google 처럼 소문자로 올 수 있음.
             return AuthProvider.valueOf(provider.trim().toUpperCase());
 
         } catch (IllegalArgumentException ex) {

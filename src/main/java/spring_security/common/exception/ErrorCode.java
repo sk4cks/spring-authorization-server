@@ -21,15 +21,17 @@ public enum ErrorCode {
     private final String defaultMessage;
 
     ErrorCode(HttpStatus status, String defaultMessage) {
-        // GlobalExceptionHandler가 status로 HTTP, defaultMessage로 body를 채운다.
+        // GlobalExceptionHandler가 status로 HTTP, defaultMessage로 body를 채움.
         this.status = status;
         this.defaultMessage = defaultMessage;
     }
 
+    /** HTTP 상태 조회. */
     public HttpStatus getStatus() {
         return status;
     }
 
+    /** 코드 기본 메시지 조회. */
     public String getDefaultMessage() {
         return defaultMessage;
     }

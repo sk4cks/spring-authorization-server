@@ -7,10 +7,11 @@ import spring_security.user.domain.SysUser;
 
 /**
  * 연락처 API 입출력.
- * 같은 JSON으로 가입 계정({@code fromAccount=true})과 수동 주소록 행을 내려준다.
+ * 같은 JSON으로 가입 계정({@code fromAccount=true})과 수동 주소록 행 응답.
  */
 public final class ContactDto {
 
+    /** 정적 팩토리만 쓰는 DTO. */
     private ContactDto() {}
 
 
@@ -39,12 +40,12 @@ public final class ContactDto {
         /** 수동 주소록 행 → 응답. */
         /** 수동 주소록 행 → 응답. */
         public static Response from(MailContact contact) {
-            // fromAccount=false, accountUserSeq는 비운다.
+            // fromAccount=false, accountUserSeq는 빈 값.
             return new Response(
                     contact.getContactSeq(), null, contact.getDisplayName(), contact.getEmail(), false);
         }
 
-        /** 가입 계정 → 응답. id 대신 accountUserSeq를 채운다. */
+        /** 가입 계정 → 응답. id 대신 accountUserSeq 설정. */
         public static Response fromAccount(SysUser user) {
             // 표시명은 로그인 id. 메일함 주소가 email.
             return new Response(null, user.getUserSeq(), user.getUserId(), user.getMailAddress(), true);

@@ -16,12 +16,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * SNS userInfo 응답을 평탄화한다.
- * Kakao/Naver는 이메일이 중첩 JSON이라 OAuthLoginSuccessHandler가 바로 읽게 편다.
+ * SNS userInfo 응답 평탄화.
+ * Kakao/Naver는 이메일이 중첩 JSON이라 OAuthLoginSuccessHandler가 바로 읽게 펼침.
  */
 @Configuration
 public class OAuth2LoginConfig {
 
+    /** Kakao/Naver userInfo를 평탄화하는 서비스. */
     @Bean
     public OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService() {
         DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
@@ -31,7 +32,7 @@ public class OAuth2LoginConfig {
             String registrationId = userRequest.getClientRegistration().getRegistrationId();
 
             if ("kakao".equals(registrationId)) {
-                // nameAttributeKey=id. 카카오 숫자 id가 Authentication.name이 된다.
+                // nameAttributeKey=id. 카카오 숫자 id가 Authentication.name.
                 return new DefaultOAuth2User(
                         user.getAuthorities(), flattenKakaoAttributes(user.getAttributes()), "id");
             }
@@ -62,7 +63,7 @@ public class OAuth2LoginConfig {
             }
         }
 
-        // OAuthLoginSuccessHandler가 provider별 principalName을 고를 때 쓴다.
+        // OAuthLoginSuccessHandler가 provider별 principalName을 고를 때 사용.
         flat.put("provider", "kakao");
 
         return flat;
@@ -93,7 +94,7 @@ public class OAuth2LoginConfig {
         return userRequest -> {
             OidcUser user = delegate.loadUser(userRequest);
 
-            // nameAttributeKey=email. JWT sub 후보로 이메일을 쓰기 쉽게 한다.
+            // nameAttributeKey=email. JWT sub 후보로 이메일을 쓰기 쉽게 펼침.
             return new DefaultOidcUser(
                     user.getAuthorities(), user.getIdToken(), user.getUserInfo(), "email");
         };

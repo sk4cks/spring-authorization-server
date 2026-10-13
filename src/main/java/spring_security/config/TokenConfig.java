@@ -10,9 +10,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 @Configuration
 public class TokenConfig {
 
+    /** 로컬 로그인 JWT 서명에 쓰는 엔코더. */
     @Bean
     public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
-        // AccessTokenService가 로컬 로그인 JWT를 이 엔코더로 서명한다.
+        // AccessTokenService가 로컬 로그인 JWT를 이 엔코더로 서명.
         return new NimbusJwtEncoder(jwkSource);
     }
 }

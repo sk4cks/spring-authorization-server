@@ -8,10 +8,11 @@ import java.util.List;
 
 /**
  * 연락처 그룹 API 입출력.
- * 멤버는 가입 계정과 소유자 MAIL_CONTACT가 한 리스트에 섞인다.
+ * 멤버는 가입 계정과 소유자 MAIL_CONTACT가 한 리스트.
  */
 public final class ContactGroupDto {
 
+    /** 정적 팩토리만 쓰는 DTO. */
     private ContactGroupDto() {}
 
 
@@ -23,7 +24,7 @@ public final class ContactGroupDto {
     public record Request(@NotBlank String name) {}
 
     /**
-     * 멤버 전체 교체 body. 둘 다 비어 있으면 멤버 없는 그룹이 된다.
+     * 멤버 전체 교체 body. 둘 다 비어 있으면 멤버 없는 그룹.
      *
      * @param contactIds MAIL_CONTACT PK. 소유자 또는 WRITE 공유자 본인 주소록이어야 함
      * @param accountUserSeqs 가입 계정 USER_SEQ
@@ -50,6 +51,7 @@ public final class ContactGroupDto {
             String sharedByUserId,
             List<ContactDto.Response> members) {
 
+        /** 그룹·멤버·권한으로 응답 생성. */
         public static Response of(
                 MailContactGroup group,
                 boolean owned,

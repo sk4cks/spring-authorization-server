@@ -23,7 +23,7 @@ import static spring_security.contact.domain.QMailContactGroupShare.mailContactG
 
 /**
  * 주소록 조회 (Querydsl).
- * 연락처·그룹·공유는 {@code delYn=N}만 본다. 멤버 테이블은 삭제 컬럼이 없어서 그룹 seq로만 고른다.
+ * 연락처·그룹·공유는 {@code delYn=N}만 조회. 멤버 테이블은 삭제 컬럼이 없어서 그룹 seq로만 선택.
  */
 @Repository
 @RequiredArgsConstructor
@@ -54,7 +54,7 @@ public class ContactQueryRepository {
                 // 내 주소록 + 삭제되지 않은 행.
                 .where(mailContact.userSeq.eq(userSeq), contactAlive())
 
-                // 표시명이 없으면 이메일로 정렬한다.
+                // 표시명이 없으면 이메일로 정렬.
                 .orderBy(mailContact.displayName.coalesce(mailContact.email).lower().asc())
                 .fetch();
     }
@@ -66,7 +66,7 @@ public class ContactQueryRepository {
                 .where(
                         mailContact.contactSeq.eq(contactSeq),
 
-                        // 남의 행은 안 준다. 삭제 행도 제외.
+                        // 남의 행은 제외. 삭제 행도 제외.
                         mailContact.userSeq.eq(userSeq),
                         contactAlive())
                 .fetchOne();
@@ -80,7 +80,7 @@ public class ContactQueryRepository {
             return false;
         }
 
-        // selectOne + fetchFirst: 한 건만 보면 되므로 count는 안 쓴다.
+        // selectOne + fetchFirst. 한 건만 필요해서 count는 생략.
         Integer found = queryFactory
                 .selectOne()
                 .from(mailContact)
@@ -93,13 +93,13 @@ public class ContactQueryRepository {
         return found != null;
     }
 
-    /** 그 사용자의 주소록에서 이메일로 한 건. 그룹 멤버를 소유자 행으로 맞출 때 쓴다. */
+    /** 그 사용자의 주소록에서 이메일로 한 건 조회. 그룹 멤버를 소유자 행으로 맞출 때 사용. */
     public Optional<MailContact> findActiveByUserAndEmail(Long userSeq, String email) {
         if (!StringUtils.hasText(email)) {
             return Optional.empty();
         }
 
-        // 대소문자 무시. 그룹 멤버를 소유자 행으로 맞출 때 쓴다.
+        // 대소문자 무시. 그룹 멤버를 소유자 행으로 맞출 때 사용.
         MailContact result = queryFactory
                 .selectFrom(mailContact)
                 .where(
@@ -166,12 +166,12 @@ public class ContactQueryRepository {
                 .where(
                         mailContactGroupMember.groupSeq.eq(groupSeq),
 
-                        // 계정 멤버 행은 contactSeq가 null이라 뺀다.
+                        // 계정 멤버 행은 contactSeq가 null이라 제외.
                         mailContactGroupMember.contactSeq.isNotNull())
                 .fetch();
     }
 
-    /** 여러 그룹의 MAIL_CONTACT 멤버 seq. 공유 그룹 자동완성에 쓴다. */
+    /** 여러 그룹의 MAIL_CONTACT 멤버 seq 조회. 공유 그룹 자동완성에 사용. */
     public List<Long> findContactSeqsByGroupSeqs(Collection<Long> groupSeqs) {
         if (groupSeqs == null || groupSeqs.isEmpty()) {
             return List.of();
@@ -219,7 +219,7 @@ public class ContactQueryRepository {
         return Optional.ofNullable(result);
     }
 
-    /** 공유 한 건. 그룹에 속한 활성 행인지 확인한 뒤 해제할 때 쓴다. */
+    /** 공유 한 건 조회. 그룹에 속한 활성 행인지 확인한 뒤 해제에 사용. */
     public Optional<MailContactGroupShare> findActiveBySeqAndGroup(Long shareSeq, Long groupSeq) {
         MailContactGroupShare result = queryFactory
                 .selectFrom(mailContactGroupShare)

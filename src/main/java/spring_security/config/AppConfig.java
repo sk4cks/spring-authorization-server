@@ -30,11 +30,12 @@ import java.util.UUID;
 
 /**
  * SAS 클라이언트·JWK·authorization 저장소.
- * 재시작하면 in-memory라서 발급된 refresh/code는 사라진다.
+ * 재시작하면 in-memory라서 발급된 refresh/code는 소멸.
  */
 @Configuration
 public class AppConfig {
 
+    /** react-note 클라이언트와 redirect URI 등록. */
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
         return new InMemoryRegisteredClientRepository(reactNoteSpaClient());
@@ -53,7 +54,7 @@ public class AppConfig {
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                // 프론트 OAuthCallbackView. 로컬과 nip.io를 같이 허용한다.
+                // 프론트 OAuthCallbackView. 로컬과 nip.io를 같이 허용.
                 .redirectUri("http://localhost:8080/oauth/callback")
                 .redirectUri("http://127.0.0.1:8080/oauth/callback")
                 .redirectUri("https://app.13.239.220.205.nip.io/oauth/callback")
@@ -72,15 +73,17 @@ public class AppConfig {
                 .build();
     }
 
+    /** 기동마다 새 RSA 키. 재시작 후 이전 JWT는 검증 실패. */
     @Bean
     public JWKSource<SecurityContext> jwkSource() throws NoSuchAlgorithmException {
-        // 기동마다 새 RSA 키. 재시작 후 이전 JWT는 검증 실패한다.
+        // 기동마다 새 RSA 키. 재시작 후 이전 JWT는 검증 실패.
         RSAKey rsaKey = generateRsa();
         JWKSet jwkSet = new JWKSet(rsaKey);
 
         return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
     }
 
+    /** 서명용 RSA JWK 생성. */
     private RSAKey generateRsa() throws NoSuchAlgorithmException {
         KeyPair keyPair = generateRsaKey();
         RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) keyPair.getPrivate();
@@ -92,6 +95,7 @@ public class AppConfig {
                 .build();
     }
 
+    /** 2048비트 RSA 키 쌍 생성. */
     private KeyPair generateRsaKey() throws NoSuchAlgorithmException {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
@@ -99,12 +103,14 @@ public class AppConfig {
         return keyPairGenerator.generateKeyPair();
     }
 
+    /** code/refresh를 메모리에 보관. */
     @Bean
     public OAuth2AuthorizationService oAuth2AuthorizationService() {
-        // code/refresh를 메모리에 둔다. AccessTokenService.save와 SNS success handler가 여기를 쓴다.
+        // code/refresh를 메모리에 보관. AccessTokenService.save와 SNS success handler가 여기 사용.
         return new InMemoryOAuth2AuthorizationService();
     }
 
+    /** 동의 정보를 메모리에 보관. */
     @Bean
     public OAuth2AuthorizationConsentService oAuth2AuthorizationConsentService() {
         return new InMemoryOAuth2AuthorizationConsentService();

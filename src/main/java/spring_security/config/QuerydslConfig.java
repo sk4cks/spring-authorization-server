@@ -12,9 +12,10 @@ public class QuerydslConfig {
     @PersistenceContext
     private EntityManager entityManager;
 
+    /** 주소록·사용자 Querydsl 조회용 팩토리. */
     @Bean
     public JPAQueryFactory jpaQueryFactory() {
-        // ContactQueryRepository / SysUserQueryRepository가 이 팩토리로 조회한다.
+        // ContactQueryRepository / SysUserQueryRepository가 이 팩토리로 조회.
         return new JPAQueryFactory(entityManager);
     }
 }

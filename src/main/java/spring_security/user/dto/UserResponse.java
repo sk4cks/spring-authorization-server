@@ -11,8 +11,9 @@ public record UserResponse(
         AuthProvider authProvider,
         UserStatus status) {
 
+    /** SYS_USER를 응답으로 변환. 비밀번호·메일함 암호는 제외. */
     public static UserResponse from(SysUser user) {
-        // passwordHash·메일함 암호는 넣지 않는다.
+        // passwordHash·메일함 암호는 제외.
         return new UserResponse(
                 user.getUserSeq(),
                 user.getUserId(),

@@ -19,7 +19,7 @@ public record RecipientSuggestItem(
         return new RecipientSuggestItem("contact", id, displayName, email, List.of());
     }
 
-    /** 그룹 후보. 칩에 펼칠 메일 목록을 같이 준다. */
+    /** 그룹 후보. 칩에 펼칠 메일 목록을 같이 담는 응답. */
     public static RecipientSuggestItem group(Long id, String name, List<String> emails) {
         return new RecipientSuggestItem("group", id, name, null, emails);
     }

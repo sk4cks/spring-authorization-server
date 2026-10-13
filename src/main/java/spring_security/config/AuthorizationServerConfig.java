@@ -23,6 +23,7 @@ import spring_security.auth.oauth.OAuthLoginAttributes;
 @Configuration
 public class AuthorizationServerConfig {
 
+    /** /oauth2/authorize, /oauth2/token 필터 체인. */
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -38,6 +39,7 @@ public class AuthorizationServerConfig {
         return http.build();
     }
 
+    /** SNS provider/externalId가 있으면 JWT sns_* 클레임에 추가. */
     @Bean
     public OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer() {
         return context -> {
@@ -53,7 +55,7 @@ public class AuthorizationServerConfig {
 
             OAuth2Authorization authorization = context.getAuthorization();
             if (authorization != null) {
-                // SNS 로그인 때 저장해 둔 provider/externalId가 있으면 JWT에 넣는다.
+                // SNS 로그인 때 저장해 둔 provider/externalId가 있으면 JWT에 추가.
                 String snsProvider = authorization.getAttribute(OAuthLoginAttributes.SNS_PROVIDER);
                 String snsExternalId = authorization.getAttribute(OAuthLoginAttributes.SNS_EXTERNAL_ID);
                 if (StringUtils.hasText(snsProvider) && StringUtils.hasText(snsExternalId)) {

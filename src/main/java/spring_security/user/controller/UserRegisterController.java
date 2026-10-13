@@ -16,7 +16,7 @@ import spring_security.user.dto.UserResponse;
 import spring_security.user.service.UserRegisterService;
 
 /**
- * 로컬 회원가입. permitAll. 내부 API key는 필요 없다.
+ * 로컬 회원가입. permitAll. 내부 API key는 불필요.
  */
 @RestController
 @RequestMapping("/auth")
@@ -25,12 +25,14 @@ public class UserRegisterController {
 
     private final UserRegisterService userRegisterService;
 
+    /** 가입 전 userId 사용 가능 여부 조회. */
     @GetMapping("/check-userid")
     public ResponseEntity<UserIdAvailabilityResponse> checkUserId(@RequestParam String userId) {
         // userId + userId@domain 중복. available=true 이면 가입 가능.
         return ResponseEntity.ok(userRegisterService.checkUserId(userId));
     }
 
+    /** 로컬 회원가입. 내부 API key는 불필요. */
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse response = userRegisterService.register(request);
